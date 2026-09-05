@@ -14,8 +14,13 @@ export default function VerifyPending() {
   const inReview = verificationStatus === 'in_review'
 
   return (
-    <Page nav={false} padBottom={false}>
-      <Header close onClose={() => navigate('/onboarding')} border={false} />
+    <Page
+      nav={false}
+      padBottom={false}
+      header={
+        <Header close onClose={() => navigate('/onboarding')} border={false} />
+      }
+    >
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-[420px] mx-auto w-full">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}

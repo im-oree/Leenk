@@ -31,12 +31,17 @@ export function Notifications() {
   const icons = { match: 'heart', like: 'heart', comment: 'comment', follow: 'user', verify: 'badge' }
 
   return (
-    <Page nav={false} swipeBack>
-      <Header
-        back
-        title="Activity"
-        right={<Button variant="ghost" size="sm" className="muted" onClick={() => dispatch({ type: 'notifications/readAll' })}>Mark all read</Button>}
-      />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header
+          back
+          title="Activity"
+          right={<Button variant="ghost" size="sm" className="muted" onClick={() => dispatch({ type: 'notifications/readAll' })}>Mark all read</Button>}
+        />
+      }
+    >
       <div className="max-w-[var(--content-max)] w-full mx-auto pt-2 pb-10">
         {notifications.length ? (
           <motion.div variants={listStagger(0.04)} initial="initial" animate="animate">
@@ -73,8 +78,13 @@ export function Likes() {
   const people = CANDIDATES.slice(3, 11)
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Liked you" subtitle={`${people.length} people`} />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Liked you" subtitle={`${people.length} people`} />
+      }
+    >
       <div className="max-w-[var(--content-max)] w-full mx-auto px-4 pt-3 pb-10">
         <div className="rounded-3xl brand-fill text-white p-5 mb-5 shadow-glow">
           <Icon name="crown" size={24} />
@@ -143,14 +153,19 @@ export function Compose() {
   }
 
   return (
-    <Page nav={false} padBottom={false}>
-      <Header
-        close
-        onClose={() => navigate(-1)}
-        title={isStory ? 'New story' : 'New post'}
-        right={<Button size="sm" disabled={!media} onClick={publish}>Share</Button>}
-      />
-      <div className="flex-1 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-4 pb-10 space-y-5">
+    <Page
+      nav={false}
+      padBottom={false}
+      header={
+        <Header
+          close
+          onClose={() => navigate(-1)}
+          title={isStory ? 'New story' : 'New post'}
+          right={<Button size="sm" disabled={!media} onClick={publish}>Share</Button>}
+        />
+      }
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-4 pb-10 space-y-5">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => { haptic('light'); setMedia(`https://picsum.photos/seed/c${Date.now() % 999}/1000/1000`) }}
@@ -207,9 +222,28 @@ export function PostDetail() {
   )
 
   return (
-    <Page nav={false} padBottom={false} swipeBack>
-      <Header back title="Post" />
-      <div className="flex-1 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto pb-4">
+    <Page
+      nav={false}
+      padBottom={false}
+      swipeBack
+      header={
+        <Header back title="Post" />
+      }
+      footer={
+        <div className="glass border-t hairline px-4 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
+          <div className="max-w-[var(--content-max)] mx-auto flex items-center gap-2.5">
+            <Input placeholder="Add a comment…" value={comment} onChange={(e) => setComment(e.target.value)} containerClassName="flex-1" />
+            <Button
+              size="md" disabled={!comment.trim()}
+              onClick={() => { setComments([...comments, { id: Date.now(), author: post.author, text: comment, at: Date.now() }]); setComment('') }}
+            >
+              Post
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto pb-4">
         <div className="flex items-center gap-3 px-4 py-3">
           <Avatar src={post.author.photos[0]} name={post.author.name} size="md" verified />
           <div className="min-w-0 flex-1">
@@ -245,17 +279,6 @@ export function PostDetail() {
         </div>
       </div>
 
-      <div className="glass border-t hairline px-4 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
-        <div className="max-w-[var(--content-max)] mx-auto flex items-center gap-2.5">
-          <Input placeholder="Add a comment…" value={comment} onChange={(e) => setComment(e.target.value)} containerClassName="flex-1" />
-          <Button
-            size="md" disabled={!comment.trim()}
-            onClick={() => { setComments([...comments, { id: Date.now(), author: post.author, text: comment, at: Date.now() }]); setComment('') }}
-          >
-            Post
-          </Button>
-        </div>
-      </div>
     </Page>
   )
 }
@@ -273,8 +296,13 @@ export function TrustCenter() {
   const total = factors.reduce((n, f) => n + f.score, 0)
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Verification & trust" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Verification & trust" />
+      }
+    >
       <div className="max-w-[var(--content-max)] w-full mx-auto pt-4 pb-12 space-y-7">
         <div className="mx-4 surface rounded-[28px] p-6 text-center">
           <Badge tone={verificationStatus === 'verified' ? 'success' : 'warn'} icon="badge">
@@ -340,8 +368,13 @@ export function SafetyCenter() {
   const navigate = useNavigate()
   const { toast } = useStore()
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Safety centre" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Safety centre" />
+      }
+    >
       <div className="max-w-[var(--content-max)] w-full mx-auto pt-4 pb-12 space-y-7">
         <div className="mx-4 rounded-[28px] p-5 bg-brand-500/[0.07]">
           <Icon name="shield" size={26} className="text-brand-500" />
@@ -388,11 +421,27 @@ export function ReportFlow() {
   ]
 
   return (
-    <Page nav={false} padBottom={false} swipeBack onSwipeBack={() => (step === 0 ? navigate(-1) : setStep(0))}>
-      <Header back onBack={() => (step === 0 ? navigate(-1) : setStep(0))} title="Report" subtitle={`Step ${step + 1} of 2`} />
+    <Page
+      nav={false}
+      padBottom={false}
+      swipeBack
+      onSwipeBack={() => (step === 0 ? navigate(-1) : setStep(0))}
+      header={
+        <Header back onBack={() => (step === 0 ? navigate(-1) : setStep(0))} title="Report" subtitle={`Step ${step + 1} of 2`} />
+      }
+      footer={
+        <div className="glass border-t hairline px-5 pt-3.5 pb-[max(env(safe-area-inset-bottom),18px)]">
+          <div className="max-w-[var(--content-max)] mx-auto">
+            <Button full size="lg" disabled={!category} onClick={() => { if (step === 0) setStep(1); else { toast('Report sent to moderators', 'success'); navigate(-1) } }}>
+              {step === 0 ? 'Continue' : 'Submit report'}
+            </Button>
+          </div>
+        </div>
+      }
+    >
       <div className="px-5"><ProgressBar value={((step + 1) / 2) * 100} /></div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-6 pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-6 pb-8">
         <AnimatePresence mode="wait">
           {step === 0 ? (
             <motion.div key="cat" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.26 }}>
@@ -429,13 +478,6 @@ export function ReportFlow() {
         </AnimatePresence>
       </div>
 
-      <div className="glass border-t hairline px-5 pt-3.5 pb-[max(env(safe-area-inset-bottom),18px)]">
-        <div className="max-w-[var(--content-max)] mx-auto">
-          <Button full size="lg" disabled={!category} onClick={() => { if (step === 0) setStep(1); else { toast('Report sent to moderators', 'success'); navigate(-1) } }}>
-            {step === 0 ? 'Continue' : 'Submit report'}
-          </Button>
-        </div>
-      </div>
     </Page>
   )
 }
@@ -514,9 +556,26 @@ export function Premium() {
   ]).map((p) => ({ id: p.id, label: p.label, price: p.display, ...PLAN_META[p.id] }))
 
   return (
-    <Page nav={false} padBottom={false}>
-      <Header close onClose={() => navigate(-1)} title="Leenk+" />
-      <div className="flex-1 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-3 pb-8">
+    <Page
+      nav={false}
+      padBottom={false}
+      header={
+        <Header close onClose={() => navigate(-1)} title="Leenk+" />
+      }
+      footer={
+        <div className="glass border-t hairline px-5 pt-3.5 pb-[max(env(safe-area-inset-bottom),18px)]">
+          <div className="max-w-[var(--content-max)] mx-auto">
+            <Button full size="lg" loading={paying} disabled={paying} onClick={startPayment}>
+              {paying ? 'Opening secure checkout…' : 'Continue'}
+            </Button>
+            <p className="text-[11.5px] muted text-center mt-2.5">
+              Cancel any time. Payment happens right here in the app.
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-3 pb-8">
         <div className="text-center py-5">
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }} className="w-16 h-16 rounded-[24px] brand-fill grid place-items-center mx-auto shadow-glow">
             <Icon name="crown" size={28} className="text-white" />
@@ -564,16 +623,6 @@ export function Premium() {
         </div>
       </div>
 
-      <div className="glass border-t hairline px-5 pt-3.5 pb-[max(env(safe-area-inset-bottom),18px)]">
-        <div className="max-w-[var(--content-max)] mx-auto">
-          <Button full size="lg" loading={paying} disabled={paying} onClick={startPayment}>
-            {paying ? 'Opening secure checkout…' : 'Continue'}
-          </Button>
-          <p className="text-[11.5px] muted text-center mt-2.5">
-            Cancel any time. Payment happens right here in the app.
-          </p>
-        </div>
-      </div>
     </Page>
   )
 }
@@ -586,12 +635,18 @@ export function EditProfile() {
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }))
 
   return (
-    <Page nav={false} padBottom={false} swipeBack>
-      <Header
-        back title="Edit profile"
-        right={<Button size="sm" onClick={() => { dispatch({ type: 'profile/update', patch: draft }); toast('Profile saved', 'success'); navigate(-1) }}>Save</Button>}
-      />
-      <div className="flex-1 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-5 pb-10 space-y-7">
+    <Page
+      nav={false}
+      padBottom={false}
+      swipeBack
+      header={
+        <Header
+          back title="Edit profile"
+          right={<Button size="sm" onClick={() => { dispatch({ type: 'profile/update', patch: draft }); toast('Profile saved', 'success'); navigate(-1) }}>Save</Button>}
+        />
+      }
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-w-[var(--content-max)] w-full mx-auto px-5 pt-5 pb-10 space-y-7">
         <div>
           <p className="text-[13px] font-semibold uppercase tracking-[0.07em] muted mb-3">Photos</p>
           <div className="grid grid-cols-3 gap-2.5">
@@ -684,8 +739,13 @@ export function CampusPage() {
   const [tab, setTab] = useState('posts')
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title={campus.short} subtitle={`${campus.userCount.toLocaleString()} verified students`} />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title={campus.short} subtitle={`${campus.userCount.toLocaleString()} verified students`} />
+      }
+    >
       <div className="max-w-[var(--content-max)] w-full mx-auto pb-10">
         <div className="px-5 pt-4">
           <div className="surface rounded-[28px] p-5">
@@ -784,8 +844,13 @@ export function StoryViewer() {
 export function SharePage() {
   const { me, toast } = useStore()
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Share Leenk" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Share Leenk" />
+      }
+    >
       <div className="max-w-[480px] w-full mx-auto px-6 pt-6 pb-12 text-center">
         <div className="surface rounded-[28px] p-7">
           <Avatar src={me.photos[0]} name={me.name} size="xl" verified className="mx-auto" />

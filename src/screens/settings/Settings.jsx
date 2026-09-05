@@ -21,8 +21,13 @@ export default function Settings() {
   const [signOutOpen, setSignOutOpen] = useState(false)
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Settings" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Settings" />
+      }
+    >
 
       <div className="max-w-[560px] w-full mx-auto pb-10 space-y-7 pt-4">
         <button

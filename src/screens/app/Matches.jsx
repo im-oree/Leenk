@@ -37,8 +37,11 @@ export default function Matches() {
   )
 
   return (
-    <Page>
-      <Header title="Chats" subtitle={showSkeleton ? 'Loading…' : `${matches.length} matches`} right={fresh.length > 0 ? <Badge tone="brand" icon="heart" size="sm">{fresh.length} new</Badge> : null} />
+    <Page
+      header={
+        <Header title="Chats" subtitle={showSkeleton ? 'Loading…' : `${matches.length} matches`} right={fresh.length > 0 ? <Badge tone="brand" icon="heart" size="sm">{fresh.length} new</Badge> : null} />
+      }
+    >
 
       <OfflineBanner />
 

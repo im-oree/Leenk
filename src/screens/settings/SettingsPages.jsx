@@ -34,8 +34,13 @@ export function NotificationSettings() {
   ]
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Notifications" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Notifications" />
+      }
+    >
       <div className="max-w-[560px] w-full mx-auto pt-4 space-y-6 pb-10">
         <div className="mx-4 p-4 rounded-3xl bg-brand-500/[0.07] flex gap-3">
           <Icon name="bell" size={18} className="text-brand-500 shrink-0 mt-0.5" />
@@ -68,8 +73,13 @@ export function AppearanceSettings() {
   const { settings, dispatch } = useStore()
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Appearance" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Appearance" />
+      }
+    >
       <div className="max-w-[560px] w-full mx-auto pt-4 space-y-7 pb-10">
         <div className="px-4">
           <p className="text-[13px] font-semibold uppercase tracking-[0.07em] muted mb-3">Theme</p>
@@ -125,8 +135,13 @@ export function PrivacySettings() {
   ]
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Privacy & visibility" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Privacy & visibility" />
+      }
+    >
       <div className="max-w-[560px] w-full mx-auto pt-4 space-y-7 pb-10">
         <div className="px-4">
           <p className="text-[13px] font-semibold uppercase tracking-[0.07em] muted mb-3">Who can see my profile</p>
@@ -175,8 +190,13 @@ export function DiscoverySettings() {
   const set = (patch) => dispatch({ type: 'filters/set', patch })
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Discovery preferences" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Discovery preferences" />
+      }
+    >
       <div className="max-w-[560px] w-full mx-auto pt-6 px-5 space-y-8 pb-10">
         <div>
           <p className="text-[13px] font-semibold uppercase tracking-[0.07em] muted mb-4">Age range</p>
@@ -219,8 +239,13 @@ export function AccountSettings() {
   const [email, setEmail] = useState('')
 
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Account" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Account" />
+      }
+    >
       <div className="max-w-[560px] w-full mx-auto pt-4 space-y-7 pb-10">
         <Section title="Sign-in">
           <ListRow icon="phone" label="Phone number" value="+234 ••• •• 78" onClick={() => toast('Change flow opens here')} />
@@ -262,8 +287,13 @@ export function AccountSettings() {
 /* ------------------------------- Blocked -------------------------------- */
 export function BlockedSettings() {
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Blocked accounts" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Blocked accounts" />
+      }
+    >
       <EmptyState icon="block" title="Nobody blocked" description="Anyone you block disappears from your stack, feed and chats — and can't find you either." />
     </Page>
   )
@@ -279,8 +309,13 @@ export function LegalPage() {
     { title: 'Appeals', body: 'If you think a decision was wrong — including a device-linked ban — Trust & Safety reviews every appeal with a human.' },
   ]
   return (
-    <Page nav={false} swipeBack>
-      <Header back title="Community guidelines" />
+    <Page
+      nav={false}
+      swipeBack
+      header={
+        <Header back title="Community guidelines" />
+      }
+    >
       <div className="max-w-[560px] w-full mx-auto px-6 pt-5 pb-12 space-y-6">
         {sections.map((s, i) => (
           <motion.div

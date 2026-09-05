@@ -30,23 +30,30 @@ export default function StepShell({
   const handleContinue = () => (onContinue ? onContinue() : next(pathname))
 
   return (
-    <Page nav={false} padBottom={false} swipeBack onSwipeBack={() => back(pathname)}>
-      <Header
-        back
-        onBack={() => back(pathname)}
-        border={false}
-        right={
-          onSkip ? (
-            <Button variant="ghost" size="sm" onClick={onSkip} className="muted">
-              {skipLabel}
-            </Button>
-          ) : (
-            <span className="text-[12.5px] muted tabular-nums pr-3">
-              {index + 1} / {STEPS.length}
-            </span>
-          )
-        }
-      />
+    <Page
+      nav={false}
+      padBottom={false}
+      swipeBack
+      onSwipeBack={() => back(pathname)}
+      header={
+        <Header
+          back
+          onBack={() => back(pathname)}
+          border={false}
+          right={
+            onSkip ? (
+              <Button variant="ghost" size="sm" onClick={onSkip} className="muted">
+                {skipLabel}
+              </Button>
+            ) : (
+              <span className="text-[12.5px] muted tabular-nums pr-3">
+                {index + 1} / {STEPS.length}
+              </span>
+            )
+          }
+        />
+      }
+    >
 
       <div className="px-5 pt-1">
         <ProgressBar value={((index + 1) / STEPS.length) * 100} />

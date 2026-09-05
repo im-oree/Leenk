@@ -187,7 +187,7 @@ export default function VideoEditor({ asset, onDone, onCancel }) {
         }
       />
 
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
         <div className="max-w-[560px] w-full mx-auto px-5 pt-4 pb-10">
 
           {/* preview */}

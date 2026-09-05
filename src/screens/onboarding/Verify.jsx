@@ -35,21 +35,28 @@ export default function Verify() {
   }
 
   return (
-    <Page nav={false} padBottom={false} swipeBack onSwipeBack={goBack}>
-      <Header
-        back
-        onBack={goBack}
-        title="Verification"
-        subtitle={`Step ${stage + 1} of ${STAGES.length}`}
-        border={false}
-        right={
-          stage < 3 ? (
-            <Button variant="ghost" size="sm" className="muted" onClick={() => navigate('/verify/pending')}>
-              Later
-            </Button>
-          ) : null
-        }
-      />
+    <Page
+      nav={false}
+      padBottom={false}
+      swipeBack
+      onSwipeBack={goBack}
+      header={
+        <Header
+          back
+          onBack={goBack}
+          title="Verification"
+          subtitle={`Step ${stage + 1} of ${STAGES.length}`}
+          border={false}
+          right={
+            stage < 3 ? (
+              <Button variant="ghost" size="sm" className="muted" onClick={() => navigate('/verify/pending')}>
+                Later
+              </Button>
+            ) : null
+          }
+        />
+      }
+    >
       <div className="px-5">
         <ProgressBar value={((stage + 1) / STAGES.length) * 100} />
       </div>

@@ -29,8 +29,7 @@ export default function UserProfile() {
 
   if (!user) {
     return (
-      <Page nav={false}>
-        <Header back title="Profile" />
+      <Page nav={false} header={<Header back title="Profile" />}>
         <EmptyState icon="user" title="Profile not found" description="This account may have been removed." action="Go back" onAction={() => navigate(-1)} />
       </Page>
     )
@@ -39,10 +38,23 @@ export default function UserProfile() {
   const campus = campusById(user.campusId)
 
   return (
-    <Page nav={false} padBottom={false} swipeBack>
+    <Page
+      nav={false}
+      padBottom={false}
+      swipeBack
+      footer={
+        <div className="glass border-t hairline px-5 pt-3 pb-[max(env(safe-area-inset-bottom),14px)]">
+          <div className="max-w-[var(--content-max)] mx-auto flex gap-3 justify-center">
+            <Button variant="secondary" size="lg" icon="x" className="!w-14 !px-0 !text-rose-500" onClick={() => navigate(-1)} aria-label="Pass" />
+            <Button variant="secondary" size="lg" icon="star" className="!w-14 !px-0 !text-sky-500" onClick={() => toast('Super liked', 'brand')} aria-label="Super like" />
+            <Button size="lg" icon="heart" full onClick={() => { toast(`You liked ${user.name}`, 'brand'); navigate(-1) }}>Like</Button>
+          </div>
+        </div>
+      }
+    >
       <Header back transparent border={false} right={<IconButton icon="dots" tone="glass" label="Options" onClick={() => setMenuOpen(true)} />} className="!absolute left-0 right-0 !top-0" />
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-32">
         <div className="relative aspect-[3/4] bg-[color:var(--app-elev)] overflow-hidden">
           <img src={user.photos[photoIdx]} alt={user.name} className="w-full h-full object-cover" draggable={false} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/35 pointer-events-none" />
@@ -125,14 +137,6 @@ export default function UserProfile() {
             </Button>
             <Button variant="secondary" icon="flag" onClick={() => navigate('/app/report')}>Report</Button>
           </div>
-        </div>
-      </div>
-
-      <div className="glass border-t hairline px-5 pt-3 pb-[max(env(safe-area-inset-bottom),14px)]">
-        <div className="max-w-[var(--content-max)] mx-auto flex gap-3 justify-center">
-          <Button variant="secondary" size="lg" icon="x" className="!w-14 !px-0 !text-rose-500" onClick={() => navigate(-1)} aria-label="Pass" />
-          <Button variant="secondary" size="lg" icon="star" className="!w-14 !px-0 !text-sky-500" onClick={() => toast('Super liked', 'brand')} aria-label="Super like" />
-          <Button size="lg" icon="heart" full onClick={() => { toast(`You liked ${user.name}`, 'brand'); navigate(-1) }}>Like</Button>
         </div>
       </div>
 

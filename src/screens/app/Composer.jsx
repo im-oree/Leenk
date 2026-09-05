@@ -148,17 +148,23 @@ export default function Composer() {
   }
 
   return (
-    <Page nav={false} padBottom={false} scroll={false}>
-      <Header
-        close
-        onClose={() => navigate(-1)}
-        title={mode === 'story' ? 'New story' : 'New post'}
-        right={
-          <Button size="sm" disabled={!asset || busy} loading={busy} onClick={publish}>
-            {mode === 'story' ? 'Add' : 'Share'}
-          </Button>
-        }
-      />
+    <Page
+      nav={false}
+      padBottom={false}
+      scroll={false}
+      header={
+        <Header
+          close
+          onClose={() => navigate(-1)}
+          title={mode === 'story' ? 'New story' : 'New post'}
+          right={
+            <Button size="sm" disabled={!asset || busy} loading={busy} onClick={publish}>
+              {mode === 'story' ? 'Add' : 'Share'}
+            </Button>
+          }
+        />
+      }
+    >
 
       {/* upload progress */}
       <AnimatePresence>
@@ -177,7 +183,7 @@ export default function Composer() {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
         <div className="max-w-[var(--content-max)] w-full mx-auto px-5 pt-4 pb-12 space-y-5">
 
           {/* post / story toggle */}

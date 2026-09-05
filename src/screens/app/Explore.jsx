@@ -56,8 +56,11 @@ export default function Explore() {
   }, [candidates, q])
 
   return (
-    <Page>
-      <Header title="Explore" subtitle="Posts and people across campuses" />
+    <Page
+      header={
+        <Header title="Explore" subtitle="Posts and people across campuses" />
+      }
+    >
       <OfflineBanner />
 
       <div className="max-w-[var(--content-max)] w-full mx-auto">

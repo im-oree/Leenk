@@ -50,18 +50,22 @@ export default function Discover() {
   }
 
   return (
-    <Page>
-      <Header
-        left={<div className="pl-2"><Wordmark size={21} /></div>}
-        right={
-          <>
-            <IconButton icon="sliders" label="Filters" onClick={() => setFiltersOpen(true)} />
-            <IconButton icon="bell" label="Notifications" onClick={() => navigate('/app/notifications')} />
-          </>
-        }
-      />
+    <Page
+      scroll={false}
+      header={
+        <Header
+          left={<div className="pl-2"><Wordmark size={21} /></div>}
+          right={
+            <>
+              <IconButton icon="sliders" label="Filters" onClick={() => setFiltersOpen(true)} />
+              <IconButton icon="bell" label="Notifications" onClick={() => navigate('/app/notifications')} />
+            </>
+          }
+        />
+      }
+    >
 
-      <div className="flex-1 flex flex-col px-4 pt-3 max-w-[var(--content-max)] w-full mx-auto">
+      <div className="flex-1 min-h-0 flex flex-col px-4 pt-3 max-w-[var(--content-max)] w-full mx-auto">
         <div className="flex items-center justify-between mb-3 px-1">
           <Badge tone="neutral" icon="fire" size="sm">{swipesLeft} swipes left today</Badge>
           <button onClick={() => navigate('/app/likes')} className="text-[12.5px] font-medium text-brand-500">

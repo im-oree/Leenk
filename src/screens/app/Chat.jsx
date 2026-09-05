@@ -43,8 +43,12 @@ export default function Chat() {
 
   if (!match) {
     return (
-      <Page nav={false}>
-        <Header back title="Conversation" />
+    <Page
+      nav={false}
+      header={
+          <Header back title="Conversation" />
+      }
+    >
         <div className="flex-1 grid place-items-center px-8 text-center">
           <div>
             <p className="font-display text-[19px] font-semibold">This chat is gone</p>
@@ -112,26 +116,61 @@ export default function Chat() {
   }
 
   return (
-    <Page nav={false} padBottom={false} scroll={false} swipeBack>
-      <Header
-        back
-        onBack={() => navigate('/app/matches')}
-        left={
-          <button onClick={() => navigate(`/app/user/${match.user.uid}`)} className="flex items-center gap-2.5 pl-0.5">
-            <Avatar src={match.user.photos[0]} name={match.user.name} size="sm" verified />
-          </button>
-        }
-        title={match.user.name}
-        subtitle={`${campusById(match.user.campusId).short} · Active recently`}
-        right={
-          <>
-            <IconButton icon="phone" label="Voice call" onClick={() => { haptic("light"); navigate(`/app/call/${matchId}?kind=audio`) }} />
-            <IconButton icon="dots" label="Options" onClick={() => setMenuOpen(true)} />
-          </>
-        }
-      />
-
-      <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-4">
+    <Page
+      nav={false}
+      padBottom={false}
+      scroll={false}
+      swipeBack
+      header={
+        <Header
+          back
+          onBack={() => navigate('/app/matches')}
+          left={
+            <button onClick={() => navigate(`/app/user/${match.user.uid}`)} className="flex items-center gap-2.5 pl-0.5">
+              <Avatar src={match.user.photos[0]} name={match.user.name} size="sm" verified />
+            </button>
+          }
+          title={match.user.name}
+          subtitle={`${campusById(match.user.campusId).short} · Active recently`}
+          right={
+            <>
+              <IconButton icon="phone" label="Voice call" onClick={() => { haptic("light"); navigate(`/app/call/${matchId}?kind=audio`) }} />
+              <IconButton icon="dots" label="Options" onClick={() => setMenuOpen(true)} />
+            </>
+          }
+        />
+      }
+      footer={
+        <div className="glass border-t hairline px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
+          <div className="max-w-[var(--content-max)] mx-auto flex items-end gap-2">
+            <IconButton icon="image" label="Send photo" disabled={attaching} onClick={() => sendPhoto('gallery')} />
+            <IconButton icon="sticker" label="Send a GIF" onClick={() => setGifOpen(true)} />
+            <div className="flex-1 flex items-end rounded-3xl elev border hairline px-4 py-1">
+              <textarea
+                rows={1}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                placeholder="Message…"
+                className="flex-1 bg-transparent outline-none resize-none py-2.5 text-[15px] max-h-[110px] placeholder:text-[color:var(--app-muted)]"
+              />
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={send}
+              disabled={!text.trim()}
+              aria-label="Send"
+              className={`w-11 h-11 rounded-full grid place-items-center shrink-0 transition-all duration-200 ${
+                text.trim() ? 'brand-fill text-white shadow-glow' : 'elev muted'
+              }`}
+            >
+              <Icon name="send" size={19} />
+            </motion.button>
+          </div>
+        </div>
+      }
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 py-4">
         <div className="max-w-[var(--content-max)] mx-auto">
           <div className="flex flex-col items-center text-center py-6 mb-2">
             <Avatar src={match.user.photos[0]} name={match.user.name} size="xl" verified />
@@ -215,34 +254,6 @@ export default function Chat() {
             )}
           </AnimatePresence>
           <div ref={endRef} />
-        </div>
-      </div>
-
-      <div className="glass border-t hairline px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
-        <div className="max-w-[var(--content-max)] mx-auto flex items-end gap-2">
-          <IconButton icon="image" label="Send photo" disabled={attaching} onClick={() => sendPhoto('gallery')} />
-          <IconButton icon="sticker" label="Send a GIF" onClick={() => setGifOpen(true)} />
-          <div className="flex-1 flex items-end rounded-3xl elev border hairline px-4 py-1">
-            <textarea
-              rows={1}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              placeholder="Message…"
-              className="flex-1 bg-transparent outline-none resize-none py-2.5 text-[15px] max-h-[110px] placeholder:text-[color:var(--app-muted)]"
-            />
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={send}
-            disabled={!text.trim()}
-            aria-label="Send"
-            className={`w-11 h-11 rounded-full grid place-items-center shrink-0 transition-all duration-200 ${
-              text.trim() ? 'brand-fill text-white shadow-glow' : 'elev muted'
-            }`}
-          >
-            <Icon name="send" size={19} />
-          </motion.button>
         </div>
       </div>
 

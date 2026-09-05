@@ -42,18 +42,23 @@ export default function Feed() {
   const list = tab === 'following' ? posts.filter((_, i) => i % 2 === 0) : posts
 
   return (
-    <Page scroll={false} padBottom={false}>
-      <Header
-        left={<div className="pl-2"><Wordmark size={21} /></div>}
-        right={
-          <>
-            <IconButton icon="plus" label="New post" onClick={() => navigate('/app/compose')} />
-            <IconButton icon="bell" label="Notifications" onClick={() => navigate('/app/notifications')} />
-          </>
-        }
-      />
+    <Page
+      scroll={false}
+      padBottom={false}
+      header={
+        <Header
+          left={<div className="pl-2"><Wordmark size={21} /></div>}
+          right={
+            <>
+              <IconButton icon="plus" label="New post" onClick={() => navigate('/app/compose')} />
+              <IconButton icon="bell" label="Notifications" onClick={() => navigate('/app/notifications')} />
+            </>
+          }
+        />
+      }
+    >
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(var(--nav-h)+env(safe-area-inset-bottom)+14px)]" onScroll={onScroll}>
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-[calc(var(--nav-h)+env(safe-area-inset-bottom)+14px)]" onScroll={onScroll}>
         <div className="max-w-[var(--content-max)] mx-auto">
           <div className="px-4 pt-3">
             <SegmentedControl

@@ -27,16 +27,19 @@ export default function Profile() {
   ]
 
   return (
-    <Page>
-      <Header
-        title="You"
-        right={
-          <>
-            <IconButton icon="badge" label="Trust" onClick={() => navigate('/app/trust')} />
-            <IconButton icon="gear" label="Settings" onClick={() => navigate('/app/settings')} />
-          </>
-        }
-      />
+    <Page
+      header={
+        <Header
+          title="You"
+          right={
+            <>
+              <IconButton icon="badge" label="Trust" onClick={() => navigate('/app/trust')} />
+              <IconButton icon="gear" label="Settings" onClick={() => navigate('/app/settings')} />
+            </>
+          }
+        />
+      }
+    >
 
       <div className="max-w-[var(--content-max)] w-full mx-auto">
         <motion.div
