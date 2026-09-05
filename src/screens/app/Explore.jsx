@@ -10,6 +10,7 @@ import Icon from '../../components/ui/Icon'
 import EmptyState from '../../components/ui/EmptyState'
 import OfflineBanner from '../../components/ui/OfflineBanner'
 import SmartImage from '../../components/ui/SmartImage'
+import { GridSkeleton, PersonRowSkeleton, SkeletonList } from '../../components/ui/Skeleton'
 import { useStore } from '../../lib/store'
 import { feed as feedApi, discovery, reference } from '../../lib/data'
 import { useAsync } from '../../lib/useAsync'
@@ -97,7 +98,9 @@ export default function Explore() {
           </>
         )}
 
-        {scope === 'people' ? (
+        {scope === 'people' && peopleLoading ? (
+          <SkeletonList count={8} className="px-2 pb-4"><PersonRowSkeleton /></SkeletonList>
+        ) : scope === 'people' ? (
           <motion.div variants={listStagger()} initial="initial" animate="animate" className="px-4 space-y-1.5 pb-4">
             {people.map((p) => (
               <motion.button
@@ -116,11 +119,7 @@ export default function Explore() {
             ))}
           </motion.div>
         ) : postsLoading ? (
-          <div className="grid grid-cols-3 gap-[3px] px-[3px] pb-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="aspect-square bg-[color:var(--app-elev)] animate-pulse" />
-            ))}
-          </div>
+          <GridSkeleton count={12} />
         ) : filtered.length ? (
           <div className="grid grid-cols-3 gap-[3px] px-[3px] pb-4">
             {filtered.map((p, i) => (

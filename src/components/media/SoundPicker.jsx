@@ -38,6 +38,8 @@ export default function SoundPicker({ onSelect, onClose, selectedId = null }) {
   const alive = useRef(true)
 
   useEffect(() => {
+    // See GifPicker: StrictMode remounts, so alive must be re-armed here.
+    alive.current = true
     // One audio element for the whole list.
     const el = new Audio()
     el.preload = 'none'

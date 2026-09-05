@@ -28,7 +28,14 @@ export default function GifPicker({ onSelect, onClose, autoFocus = true }) {
   const seq = useRef(0)
   const alive = useRef(true)
 
-  useEffect(() => () => { alive.current = false }, [])
+  // MUST set alive=true on mount, not just false on unmount: React StrictMode
+  // mounts -> unmounts -> remounts in dev, and a cleanup-only ref stays false
+  // forever after the first unmount, so every result gets discarded and the
+  // grid never leaves its loading state.
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false }
+  }, [])
 
   useEffect(() => {
     const mine = ++seq.current

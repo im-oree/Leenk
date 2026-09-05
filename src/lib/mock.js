@@ -185,8 +185,9 @@ const GIF_TAGS = [
 
 export const MOCK_GIFS = (q = '') => {
   const term = q.trim().toLowerCase()
-  const tags = term ? GIF_TAGS.filter((t) => t.includes(term) || term.includes(t)) : GIF_TAGS
-  const list = (tags.length ? tags : GIF_TAGS).slice(0, 18)
+  // A query that matches nothing must return nothing, so the picker's empty
+  // state is reachable in mock mode (it previously fell back to the full list).
+  const list = (term ? GIF_TAGS.filter((t) => t.includes(term) || term.includes(t)) : GIF_TAGS).slice(0, 18)
   return list.map((tag, i) => {
     // Vary aspect ratios so the masonry grid gets a realistic workout.
     const w = 200 + ((i * 37) % 120)

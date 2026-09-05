@@ -9,15 +9,26 @@ import Input from '../../components/ui/Input'
 import Icon from '../../components/ui/Icon'
 import EmptyState from '../../components/ui/EmptyState'
 import Badge from '../../components/ui/Badge'
+import { ChatRowSkeleton, StoryRingSkeleton, SkeletonList } from '../../components/ui/Skeleton'
+import OfflineBanner from '../../components/ui/OfflineBanner'
 import { useStore } from '../../lib/store'
+import { chat as chatApi } from '../../lib/data'
+import { useAsync } from '../../lib/useAsync'
 import { timeAgo } from '../../lib/format'
 import { listStagger, listItem } from '../../lib/motion'
 import { campusById } from '../../lib/mock'
 
 export default function Matches() {
   const navigate = useNavigate()
-  const { matches } = useStore()
+  const { matches: storeMatches } = useStore()
   const [q, setQ] = useState('')
+
+  // Load from the data layer, but fall back to the store so an already-warm
+  // list never flashes a skeleton on re-entry.
+  const { data, loading } = useAsync(() => chatApi.matches(), [])
+  const matches = data?.matches?.length ? data.matches : storeMatches
+  // Only show skeletons on a genuinely cold list.
+  const showSkeleton = loading && storeMatches.length === 0
 
   const fresh = matches.filter((m) => m.isNew && !m.lastMessage)
   const convos = useMemo(
@@ -27,14 +38,31 @@ export default function Matches() {
 
   return (
     <Page>
-      <Header title="Chats" subtitle={`${matches.length} matches`} right={fresh.length > 0 ? <Badge tone="brand" icon="heart" size="sm">{fresh.length} new</Badge> : null} />
+      <Header title="Chats" subtitle={showSkeleton ? 'Loading…' : `${matches.length} matches`} right={fresh.length > 0 ? <Badge tone="brand" icon="heart" size="sm">{fresh.length} new</Badge> : null} />
+
+      <OfflineBanner />
 
       <div className="max-w-[var(--content-max)] w-full mx-auto">
         <div className="px-4 pt-3">
           <Input icon="search" placeholder="Search matches" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
 
-        {fresh.length > 0 && (
+        {showSkeleton && (
+          <>
+            <div className="mt-5">
+              <p className="px-5 text-[12.5px] font-semibold uppercase tracking-[0.07em] muted mb-3">New matches</p>
+              <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-4 pb-1">
+                {Array.from({ length: 5 }).map((_, i) => <StoryRingSkeleton key={i} />)}
+              </div>
+            </div>
+            <div className="mt-6">
+              <p className="px-5 text-[12.5px] font-semibold uppercase tracking-[0.07em] muted mb-1.5">Messages</p>
+              <SkeletonList count={7} className="px-2"><ChatRowSkeleton /></SkeletonList>
+            </div>
+          </>
+        )}
+
+        {!showSkeleton && fresh.length > 0 && (
           <div className="mt-5">
             <p className="px-5 text-[12.5px] font-semibold uppercase tracking-[0.07em] muted mb-3">New matches</p>
             <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-4 pb-1">
@@ -58,7 +86,7 @@ export default function Matches() {
           </div>
         )}
 
-        <div className="mt-6">
+        {!showSkeleton && <div className="mt-6">
           <p className="px-5 text-[12.5px] font-semibold uppercase tracking-[0.07em] muted mb-1.5">Messages</p>
           {convos.length ? (
             <motion.div variants={listStagger(0.04)} initial="initial" animate="animate">
@@ -88,7 +116,7 @@ export default function Matches() {
                         </span>
                       )}
                     </span>
-                    <span className="block text-[11.5px] muted mt-0.5 truncate">{campusById(m.user.campusId).short}</span>
+                    <span className="block text-[11.5px] muted mt-0.5 truncate">{campusById(m.user.campusId)?.short || ''}</span>
                   </span>
                 </motion.button>
               ))}
@@ -102,7 +130,7 @@ export default function Matches() {
               onAction={() => navigate('/app/discover')}
             />
           )}
-        </div>
+        </div>}
       </div>
     </Page>
   )

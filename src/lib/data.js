@@ -118,8 +118,12 @@ export const discovery = {
 
   async swipe(targetUid, direction, context) {
     if (!USE_API) {
-      // Mock match rule: right-swipes match ~1 in 4, super likes always.
-      const matched = direction === 'super' || Math.random() < 0.25
+      // A pass can NEVER be a match. The old rule applied the random roll to
+      // every direction, so swiping left/down fired the match overlay — the
+      // backend has always been correct here (see routes/discovery.js: the
+      // mutual-like check only runs for right|super); this mirrors it.
+      const isLike = direction === 'right' || direction === 'super'
+      const matched = isLike && (direction === 'super' || Math.random() < 0.25)
       return mock({ success: true, matched, direction }, 120)
     }
     return api.swipe(targetUid, direction, context)
