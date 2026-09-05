@@ -8,3 +8,5 @@ dist-ssr
 !.env.example
 android/
 ios/
+backend/node_modules
+backend/.env

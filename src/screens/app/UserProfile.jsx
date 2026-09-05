@@ -14,6 +14,9 @@ import EmptyState from '../../components/ui/EmptyState'
 import { CANDIDATES, campusById, intentLabel } from '../../lib/mock'
 import { useStore } from '../../lib/store'
 import { haptic } from '../../lib/haptics'
+import { completeHint } from '../../lib/hints'
+import PhotoDots from '../../components/swipe/PhotoDots'
+import SwipeHint from '../../components/swipe/SwipeHint'
 
 export default function UserProfile() {
   const { userId } = useParams()
@@ -40,26 +43,41 @@ export default function UserProfile() {
       <Header back transparent border={false} right={<IconButton icon="dots" tone="glass" label="Options" onClick={() => setMenuOpen(true)} />} className="!absolute left-0 right-0 !top-0" />
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
-        <div className="relative aspect-[3/4] bg-[color:var(--app-elev)]">
-          <img src={user.photos[photoIdx]} alt={user.name} className="w-full h-full object-cover" />
+        <div className="relative aspect-[3/4] bg-[color:var(--app-elev)] overflow-hidden">
+          <img src={user.photos[photoIdx]} alt={user.name} className="w-full h-full object-cover" draggable={false} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/35 pointer-events-none" />
 
-          <div className="absolute top-3 left-4 right-4 flex gap-1.5 z-10">
-            {user.photos.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { haptic('light'); setPhotoIdx(i) }}
-                className="flex-1 h-[3px] rounded-full bg-white/28 overflow-hidden"
-              >
-                <motion.span className="block h-full bg-white rounded-full" initial={false} animate={{ width: i <= photoIdx ? '100%' : '0%' }} transition={{ duration: 0.25 }} />
-              </button>
-            ))}
+          {/* swipeable photo layer — no arrows, dots sit lower down */}
+          <motion.div
+            className="absolute inset-x-0 top-0 bottom-[120px] z-10"
+            drag={user.photos.length > 1 ? 'x' : false}
+            dragDirectionLock
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.12}
+            onDragEnd={(_, info) => {
+              const step = (d) => setPhotoIdx((i) => {
+                const n = Math.min(user.photos.length - 1, Math.max(0, i + d))
+                if (n !== i) { haptic('light'); completeHint('profilePhotoSwipe') }
+                return n
+              })
+              if (info.offset.x < -45 || info.velocity.x < -420) step(1)
+              else if (info.offset.x > 45 || info.velocity.x > 420) step(-1)
+            }}
+          />
+
+          <div className="absolute bottom-[104px] left-0 right-0 z-20 flex justify-center">
+            <SwipeHint hintId="profilePhotoSwipe" subjectId={user.uid} enabled={user.photos.length > 1} />
           </div>
 
-          <button className="absolute left-0 top-0 bottom-0 w-1/3" aria-label="Previous photo" onClick={() => photoIdx > 0 && setPhotoIdx(photoIdx - 1)} />
-          <button className="absolute right-0 top-0 bottom-0 w-1/3" aria-label="Next photo" onClick={() => photoIdx < user.photos.length - 1 && setPhotoIdx(photoIdx + 1)} />
+          <div className="absolute bottom-[86px] left-0 right-0 z-20">
+            <PhotoDots
+              count={user.photos.length}
+              index={photoIdx}
+              onSelect={(i) => { haptic('light'); setPhotoIdx(i); completeHint('profilePhotoSwipe') }}
+            />
+          </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+          <div className="absolute bottom-0 left-0 right-0 p-5 text-white z-20 pointer-events-none">
             <Badge tone="brand" icon="badge" size="sm" className="!bg-white/18 !text-white backdrop-blur-sm mb-2">Verified student</Badge>
             <h1 className="font-display text-[32px] font-semibold tracking-[-0.035em] leading-none">
               {user.name} <span className="font-sans font-normal opacity-85 text-[26px]">{user.age}</span>
