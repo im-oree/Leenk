@@ -19,6 +19,7 @@ import locationRoutes from './routes/location.js'
 import verificationRoutes from './routes/verification.js'
 import safetyRoutes from './routes/safety.js'
 import mediaRoutes from './routes/media.js'
+import paymentRoutes from './routes/payments.js'
 import storyRoutes from './routes/stories.js'
 import callRoutes from './routes/calls.js'
 import adminRoutes from './routes/admin.js'
@@ -28,6 +29,9 @@ const app = express()
 app.set('trust proxy', 1)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(cors({ origin: true, credentials: true }))
+// Payment webhooks are signature-verified over the RAW body, so the raw
+// parser MUST come before express.json() or the signature can never match.
+app.use('/api/payments/webhook', express.raw({ type: '*/*', limit: '1mb' }))
 app.use(express.json({ limit: '1mb' }))
 app.use(morgan(isProd ? 'combined' : 'dev'))
 
@@ -90,6 +94,7 @@ app.use('/api/safety', safetyRoutes)
 app.use('/api/media', mediaRoutes)
 app.use('/api/stories', storyRoutes)
 app.use('/api/calls', callRoutes)
+app.use('/api/payments', paymentRoutes)
 app.use('/api/admin', adminRoutes)
 
 /* -------------------------------- fallbacks --------------------------------- */

@@ -144,6 +144,20 @@ export const DEFAULTS = {
     studentHubSync: false,
   },
 
+  payments: {
+    enabled: false,                // flip on once keys are set
+    provider: 'paystack',          // paystack | flutterwave
+    currency: 'NGN',
+    // Phase 2 §2.6: a failed payment must never strip access abruptly.
+    graceDays: 7,
+    retryScheduleHours: [24, 72, 168],
+    // Secret keys NEVER reach the client — only `publicKey` is exposed.
+    keys: {
+      paystack: { publicKey: '', secretKey: '' },
+      flutterwave: { publicKey: '', secretKey: '', encryptionKey: '', webhookHash: '' },
+    },
+  },
+
   safety: {
     reportsBeforeReview: 3,
     autoBanEnabled: false,         // reports never auto-ban

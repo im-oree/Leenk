@@ -20,6 +20,9 @@ import { CANDIDATES, POSTS, CAMPUSES, campusById, PROMPTS } from '../../lib/mock
 import { timeAgo } from '../../lib/format'
 import { listStagger, listItem } from '../../lib/motion'
 import { haptic } from '../../lib/haptics'
+import { payments } from '../../lib/data'
+import { useAsync } from '../../lib/useAsync'
+import { openCheckout, preloadPaymentSdk } from '../../lib/payments'
 
 /* ---------------------------- Notifications ----------------------------- */
 export function Notifications() {
@@ -442,6 +445,53 @@ export function Premium() {
   const navigate = useNavigate()
   const { toast } = useStore()
   const [plan, setPlan] = useState('term')
+  const [paying, setPaying] = useState(false)
+
+  // Prices come from the server so the displayed amount and the charged
+  // amount can never drift apart.
+  const { data: payCfg } = useAsync(() => payments.config(), [])
+
+  // Warm the SDK so the popup opens instantly on tap.
+  useEffect(() => {
+    if (payCfg?.enabled) preloadPaymentSdk(payCfg.provider)
+  }, [payCfg?.enabled, payCfg?.provider])
+
+  const startPayment = async () => {
+    if (paying) return
+    setPaying(true)
+    try {
+      const intent = await payments.intent(plan)
+      if (!intent?.ok && intent?.code) {
+        toast(
+          intent.code === 'PAYMENTS_NOT_CONFIGURED'
+            ? 'Payments aren’t switched on yet.'
+            : 'Could not start payment.',
+          'error',
+        )
+        return
+      }
+
+      // Opens IN-APP. Never a new tab — a redirect inside the Capacitor
+      // webview can strand the user outside the app.
+      const result = await openCheckout(intent)
+      if (result.status === 'cancelled') return   // normal outcome, stay quiet
+
+      // The popup saying "success" grants nothing. Our server re-checks the
+      // transaction with the provider before any entitlement is given.
+      const verified = await payments.verify(result.reference)
+      if (verified?.success) {
+        haptic('success')
+        toast('You’re on Leenk+', 'success')
+        navigate(-1)
+      } else {
+        toast('We couldn’t confirm that payment yet. If you were charged, it’ll apply shortly.', 'error')
+      }
+    } catch (err) {
+      toast(err.message || 'Payment failed to start', 'error')
+    } finally {
+      setPaying(false)
+    }
+  }
 
   const perks = [
     { icon: 'heart', title: 'See who liked you', body: 'Every like, unblurred, instantly.' },
@@ -452,11 +502,16 @@ export function Premium() {
     { icon: 'crown', title: 'Campus perks', body: 'Discounts at spots around your school.' },
   ]
 
-  const plans = [
-    { id: 'month', label: '1 month', price: '₦1,680', per: 'per month' },
-    { id: 'term', label: '4 months', price: '₦4,900', per: '₦1,225 / month', tag: 'Best value' },
-    { id: 'year', label: '12 months', price: '₦12,600', per: '₦1,050 / month' },
-  ]
+  const PLAN_META = {
+    month: { per: 'per month' },
+    term: { per: '₦1,225 / month', tag: 'Best value' },
+    year: { per: '₦1,050 / month' },
+  }
+  const plans = (payCfg?.plans || [
+    { id: 'month', label: '1 month', display: '₦1,680' },
+    { id: 'term', label: '4 months', display: '₦4,900' },
+    { id: 'year', label: '12 months', display: '₦12,600' },
+  ]).map((p) => ({ id: p.id, label: p.label, price: p.display, ...PLAN_META[p.id] }))
 
   return (
     <Page nav={false} padBottom={false}>
@@ -511,8 +566,12 @@ export function Premium() {
 
       <div className="glass border-t hairline px-5 pt-3.5 pb-[max(env(safe-area-inset-bottom),18px)]">
         <div className="max-w-[var(--content-max)] mx-auto">
-          <Button full size="lg" onClick={() => toast('Payment connects to Paystack', 'brand')}>Continue</Button>
-          <p className="text-[11.5px] muted text-center mt-2.5">Cancel any time. Renews automatically.</p>
+          <Button full size="lg" loading={paying} disabled={paying} onClick={startPayment}>
+            {paying ? 'Opening secure checkout…' : 'Continue'}
+          </Button>
+          <p className="text-[11.5px] muted text-center mt-2.5">
+            Cancel any time. Payment happens right here in the app.
+          </p>
         </div>
       </div>
     </Page>

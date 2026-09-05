@@ -92,6 +92,10 @@ export const api = {
   uploadImage: (image, surface = 'post') => request('/media/image', { method: 'POST', body: { image, surface } }),
   uploadImages: (images, surface = 'profile') => request('/media/image/batch', { method: 'POST', body: { images, surface } }),
   mediaConfig: () => request('/media/config'),
+  paymentsConfig: () => request('/payments/config'),
+  paymentIntent: (planId) => request('/payments/intent', { method: 'POST', body: { planId } }),
+  paymentVerify: (reference) => request('/payments/verify', { method: 'POST', body: { reference } }),
+  paymentStatus: () => request('/payments/status'),
   searchGifs: (q, offset = 0) =>
     request(`/media/gifs?q=${encodeURIComponent(q)}&offset=${offset}`),
   searchSounds: (q, page = 1) =>

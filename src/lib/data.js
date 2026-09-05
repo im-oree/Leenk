@@ -366,6 +366,43 @@ export const media = {
 }
 
 /* ------------------------------------------------------------------ *
+ * Payments
+ * ------------------------------------------------------------------ */
+
+export const payments = {
+  async config() {
+    if (!USE_API) {
+      return mock({
+        success: true, provider: 'paystack', enabled: false, publicKey: null, currency: 'NGN',
+        plans: [
+          { id: 'month', label: '1 month', months: 1, amount: 168000, display: '₦1,680' },
+          { id: 'term', label: '4 months', months: 4, amount: 490000, display: '₦4,900' },
+          { id: 'year', label: '12 months', months: 12, amount: 1260000, display: '₦12,600' },
+        ],
+      })
+    }
+    return api.paymentsConfig()
+  },
+
+  /** Server builds the intent; the client never supplies an amount. */
+  async intent(planId) {
+    if (!USE_API) return mock({ success: true, ok: false, code: 'PAYMENTS_NOT_CONFIGURED' })
+    return api.paymentIntent(planId)
+  },
+
+  /** The ONLY thing that grants entitlement. */
+  async verify(reference) {
+    if (!USE_API) return mock({ success: true })
+    return api.paymentVerify(reference)
+  },
+
+  async status() {
+    if (!USE_API) return mock({ success: true, active: false, grace: false })
+    return api.paymentStatus()
+  },
+}
+
+/* ------------------------------------------------------------------ *
  * Profile & safety
  * ------------------------------------------------------------------ */
 

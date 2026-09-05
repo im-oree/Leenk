@@ -28,10 +28,32 @@ router.use(requireAdminKey)
 
 /* ------------------------------ CONFIG ------------------------------ */
 
+/**
+ * Redact secret-ish values before they leave the server or land in an audit
+ * log. Admin endpoints are key-gated, but provider secret keys should never
+ * be echoed back or persisted in plaintext audit records — a leaked admin
+ * response or audit dump would otherwise hand over live payment credentials.
+ */
+const SECRET_KEY_RE = /(secret|privateKey|apiKey|webhookHash|encryptionKey|password|token)/i
+const redact = (value) => {
+  if (Array.isArray(value)) return value.map(redact)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [
+        k,
+        SECRET_KEY_RE.test(k) && typeof v === 'string' && v
+          ? `${v.slice(0, 4)}••••${v.slice(-2)}`
+          : redact(v),
+      ]),
+    )
+  }
+  return value
+}
+
 router.get('/config', async (req, res, next) => {
   try {
     await loadConfig(true)
-    res.json({ success: true, config: getConfig(), sections: Object.keys(DEFAULTS) })
+    res.json({ success: true, config: redact(getConfig()), sections: Object.keys(DEFAULTS) })
   } catch (err) { next(err) }
 })
 
@@ -40,7 +62,7 @@ router.get('/config/:section', async (req, res, next) => {
     await loadConfig(true)
     const section = getConfig(req.params.section)
     if (!section) return res.status(404).json({ error: 'Unknown section' })
-    res.json({ success: true, section: req.params.section, values: section })
+    res.json({ success: true, section: req.params.section, values: redact(section) })
   } catch (err) { next(err) }
 })
 
@@ -57,11 +79,11 @@ router.patch('/config/:section', async (req, res, next) => {
     await db().collection('adminAudit').add({
       action: 'config.update',
       section: req.params.section,
-      patch: req.body,
+      patch: redact(req.body),
       at: Date.now(),
     }).catch(() => {})
 
-    res.json({ success: true, section: req.params.section, values: updated, appliesWithin: '60s' })
+    res.json({ success: true, section: req.params.section, values: redact(updated), appliesWithin: '60s' })
   } catch (err) { next(err) }
 })
 
