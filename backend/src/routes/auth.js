@@ -21,6 +21,12 @@ const newUserDoc = (uid, extra = {}) => ({
   trustScore: 50,
   subscriptionTier: 'free',
   onboardingComplete: false,
+  // Orientation fields. Deliberately null rather than defaulted: an absent
+  // preference fails the orientation gate closed, so a half-onboarded account
+  // (e.g. StudentHub sign-in before the dating questions) is never shown to
+  // anyone and never sees anyone until it answers them.
+  gender: null,
+  interestedIn: null,
   photos: [],
   prompts: [],
   privacy: { discoverability: 'nearby', visible: true, readReceipts: true, showActive: true },
@@ -139,10 +145,13 @@ const signUpSchema = z.object({
   phone: z.string().min(7),
   name: z.string().min(2).max(40),
   birthdate: z.string(),
-  gender: z.string().min(2),
+  gender: z.enum(['man', 'woman', 'nonbinary']),
+  // Who they want to see. Drives the orientation gate — required, no default,
+  // because guessing it would be the single worst bug this app could ship.
+  interestedIn: z.array(z.enum(['men', 'women', 'nonbinary'])).min(1),
   campusId: z.string().min(2),
   department: z.string().min(2),
-  level: z.string().min(1),
+  level: z.string().min(1).default('100'),
   intent: z.string().min(2),
   email: z.string().email().optional(),
   photos: z.array(z.string()).max(6).optional(),
@@ -182,6 +191,7 @@ router.post('/signup', async (req, res, next) => {
       birthdate: d.birthdate,
       age,
       gender: d.gender,
+      interestedIn: d.interestedIn,
       campusId: d.campusId,
       department: d.department,
       level: d.level,

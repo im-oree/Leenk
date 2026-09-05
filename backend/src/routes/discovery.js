@@ -5,6 +5,9 @@ import { config } from '../lib/config.js'
 import { requireAuth, requireVerified } from '../middleware/auth.js'
 import { distanceBetween } from '../services/location.js'
 import { visibilityMultiplier } from '../services/trust.js'
+import { gateReason, buildStack, assertOrientation, orientationCompatible } from '../services/matching.js'
+import { getConfig } from '../services/appConfig.js'
+import { logEvent, logSwipe } from '../services/events.js'
 
 const router = Router()
 router.use(requireAuth, requireVerified)
@@ -59,34 +62,67 @@ router.get('/stack', async (req, res, next) => {
     const seen = new Set(seenSnap.docs.map((d) => d.data().targetUid))
     seen.add(me.uid)
 
-    const all = await db().collection('users').where('verificationStatus', '==', 'verified').limit(300).get()
-    const f = me.filters || {}
-    const [minAge, maxAge] = f.ageRange || [18, 99]
+    const all = await db().collection('users').where('verificationStatus', '==', 'verified').limit(500).get()
+    const filters = me.filters || {}
 
-    let pool = all.docs.map((d) => d.data()).filter((u) => {
-      if (seen.has(u.uid)) return false
-      if (u.status !== 'active') return false
-      if (u.privacy?.visible === false) return false
-      if (u.age < minAge || u.age > maxAge) return false
-      if (f.intent && f.intent !== 'any' && u.intent !== f.intent) return false
-      if (f.department && f.department !== 'any' && u.department !== f.department) return false
-      if (f.scope === 'home' && u.campusId !== me.campusId) return false
-      // respect the other person's own privacy scope
-      if (u.privacy?.discoverability === 'home' && u.campusId !== me.campusId) return false
-      return true
-    })
+    // Blocks in both directions.
+    const blkSnap = await db().collection('blocks').where('actorUid', '==', me.uid).get()
+    const blkBySnap = await db().collection('blocks').where('targetUid', '==', me.uid).get()
+    const blocked = new Set(blkSnap.docs.map((d) => d.data().targetUid))
+    const blockedBy = new Set(blkBySnap.docs.map((d) => d.data().actorUid))
 
-    // Rank: same campus first, then trust-weighted visibility, then freshness.
-    pool = pool
-      .map((u) => {
-        const sameCampus = u.campusId === me.campusId ? 1 : 0
-        const vis = visibilityMultiplier(u.trustScore ?? 50)
-        const fresh = 1 / (1 + (Date.now() - (u.createdAtMs || 0)) / 86_400_000)
-        return { u, score: sameCampus * 2 + vis * 1.5 + fresh * 0.5 + Math.random() * 0.3 }
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map((x) => x.u)
+    // Who already liked me — biggest single ranking signal.
+    const likedMeSnap = await db().collection('swipes')
+      .where('targetUid', '==', me.uid).where('direction', 'in', ['right', 'super']).get()
+    const likedMe = new Set(likedMeSnap.docs.map((d) => d.data().actorUid))
+
+    // --- Stage 1: hard gates (orientation, age, trust, blocks, scope) ---
+    const gateCtx = { seen, blocked, blockedBy, filters }
+    const eligible = []
+    const rejected = {}
+    for (const doc of all.docs) {
+      const u = doc.data()
+      const reason = gateReason(me, u, gateCtx)
+      if (reason === null) eligible.push(u)
+      else rejected[reason] = (rejected[reason] || 0) + 1
+    }
+
+    // --- Stage 2: scoring ---
+    const distances = new Map()
+    await Promise.all(eligible.map(async (u) => {
+      const d = await distanceBetween(me.uid, u.uid)
+      distances.set(u.uid, d)
+    }))
+
+    const impressionsSnap = await db().collection('users').doc(me.uid)
+      .collection('impressions').get().catch(() => ({ docs: [] }))
+    const timesShownMap = new Map(impressionsSnap.docs.map((d) => [d.id, d.data().count || 0]))
+
+    const ranked = buildStack(
+      me,
+      eligible,
+      (u) => ({
+        distanceKm: distances.get(u.uid)?.km,
+        likedMe: likedMe.has(u.uid),
+        timesShown: timesShownMap.get(u.uid) || 0,
+        mutuals: 0, // social graph wired in phase 5
+        poolStats: {},
+      }),
+      { limit },
+    )
+
+    // --- Final safety net: orientation can never leak, even via a scoring bug ---
+    const safe = assertOrientation(me, ranked)
+    const pool = safe.map((x) => x.u)
+
+    // Record impressions so the fatigue penalty works next time.
+    Promise.all(pool.map((u) =>
+      db().collection('users').doc(me.uid).collection('impressions').doc(u.uid)
+        .set({ count: FieldValue.increment(1), lastAt: Date.now() }, { merge: true })
+        .catch(() => {}),
+    )).catch(() => {})
+
+    logEvent(me.uid, 'stack_served', { count: pool.length, rejected })
 
     const cards = await Promise.all(pool.map((u) => toCard(me, u)))
     res.json({ success: true, cards, quota: q.remaining, capped: false })
@@ -109,6 +145,18 @@ router.post('/swipe', async (req, res, next) => {
 
     if (targetUid === me.uid) return res.status(400).json({ error: 'You cannot swipe yourself' })
 
+    const targetSnap = await db().collection('users').doc(targetUid).get()
+    if (!targetSnap.exists) return res.status(404).json({ error: 'Profile not found' })
+    const target = targetSnap.data()
+
+    // Orientation is enforced on the ACTION too, not just the stack. A crafted
+    // request must not be able to create an incompatible match.
+    if (!orientationCompatible(me, target)) {
+      return res.status(403).json({ error: 'Not available', code: 'NOT_ELIGIBLE' })
+    }
+
+    logSwipe(me.uid, targetUid, direction, { dwellMs: context?.dwellMs, position: context?.position })
+
     const q = await quota(me.uid)
     if (me.subscriptionTier === 'free') {
       if (q.remaining.swipes <= 0) return res.status(429).json({ error: 'Daily swipe limit reached', code: 'SWIPE_CAP', resetsAt: `${todayKey()}T23:59:59Z` })
@@ -117,8 +165,6 @@ router.post('/swipe', async (req, res, next) => {
       }
     }
 
-    const target = await db().collection('users').doc(targetUid).get()
-    if (!target.exists) return res.status(404).json({ error: 'Profile not found' })
 
     const swipeId = `${me.uid}__${targetUid}`
     await db().collection('swipes').doc(swipeId).set({
@@ -155,7 +201,7 @@ router.post('/swipe', async (req, res, next) => {
           superLike: direction === 'super' || rd.direction === 'super',
         }, { merge: true })
 
-        match = { id: matchId, user: await toCard(me, target.data()) }
+        match = { id: matchId, user: await toCard(me, target) }
         for (const u of pair) {
           await db().collection('users').doc(u).set({ stats: { matches: FieldValue.increment(1) } }, { merge: true })
         }

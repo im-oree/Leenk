@@ -87,12 +87,12 @@ export default function MatchOverlay({ match, me, onClose }) {
             >
               <Button
                 full size="lg"
-                className="!bg-white !text-brand-600 !shadow-none"
+                className="!bg-white !text-[#c2124a] !shadow-none !font-semibold"
                 onClick={() => { onClose(); navigate(`/app/chat/${match.id}`) }}
               >
                 Send a message
               </Button>
-              <Button full size="lg" variant="ghost" className="!text-white/85" onClick={onClose}>
+              <Button full size="lg" variant="ghost" className="!text-white !font-medium hover:!bg-white/10" onClick={onClose}>
                 Keep swiping
               </Button>
             </motion.div>

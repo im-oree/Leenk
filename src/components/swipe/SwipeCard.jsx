@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion'
+import { motion, useMotionValue, useTransform, useAnimation, AnimatePresence } from 'framer-motion'
 import { useState, useCallback, useRef } from 'react'
 import Icon from '../ui/Icon'
 import Badge from '../ui/Badge'
@@ -13,10 +13,12 @@ const THRESHOLD = 110
 
 export default function SwipeCard({ user, onSwipe, onOpen, isTop, index = 0 }) {
   const { flags } = usePerf()
+  const reduce = !flags.springy
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const controls = useAnimation()
   const [photoIdx, setPhotoIdx] = useState(0)
+  const [photoDir, setPhotoDir] = useState(1)
 
   // Guards so a drag never registers as a tap (this was opening profiles mid-swipe)
   const dragging = useRef(false)
@@ -55,6 +57,7 @@ export default function SwipeCard({ user, onSwipe, onOpen, isTop, index = 0 }) {
   }
 
   const step = (dir) => {
+    setPhotoDir(dir)
     setPhotoIdx((i) => {
       const nextI = Math.min(photoCount - 1, Math.max(0, i + dir))
       if (nextI !== i) {
@@ -65,22 +68,23 @@ export default function SwipeCard({ user, onSwipe, onOpen, isTop, index = 0 }) {
     })
   }
 
-  /* ---- photo layer gestures: horizontal flick changes photo, tap opens ---- */
+  /* ---- tap handling: zone -1/+1 pages photos, 0 opens the profile ---- */
   const onPointerDown = (e) => {
     pointerStart.current = { x: e.clientX, y: e.clientY, t: Date.now() }
   }
 
-  const onPointerUp = (e) => {
+  const onPointerUp = (e, zone) => {
     if (!isTop) return
     const dx = e.clientX - pointerStart.current.x
     const dy = e.clientY - pointerStart.current.y
     const dt = Date.now() - pointerStart.current.t
     const moved = Math.hypot(dx, dy)
 
-    // A real tap: small movement, quick → open the full profile.
-    if (moved < 12 && dt < 400 && !dragging.current) {
-      onOpen?.(user)
-    }
+    // Only a genuine tap counts. Anything with travel is the card being dragged.
+    if (moved > 12 || dt > 400 || dragging.current) return
+
+    if (zone !== 0 && photoCount > 1) step(zone)
+    else onOpen?.(user)
   }
 
   const depth = Math.min(index, 2)
@@ -103,42 +107,42 @@ export default function SwipeCard({ user, onSwipe, onOpen, isTop, index = 0 }) {
       whileDrag={{ cursor: 'grabbing' }}
     >
       <div className={`relative w-full h-full rounded-[30px] overflow-hidden surface ${flags.shadows ? 'shadow-card' : ''} select-none`}>
+        {/* Base layer: the previous photo stays painted underneath so the
+            crossfade never flashes the card background. */}
         <img
-          key={photoIdx}
           src={user.photos[photoIdx]}
-          alt={user.name}
+          alt=""
+          aria-hidden
           draggable={false}
-          loading={index > 1 ? 'lazy' : 'eager'}
-          decoding="async"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
+        <AnimatePresence initial={false} custom={photoDir}>
+          <motion.img
+            key={photoIdx}
+            src={user.photos[photoIdx]}
+            alt={user.name}
+            draggable={false}
+            loading={index > 1 ? 'lazy' : 'eager'}
+            decoding="async"
+            custom={photoDir}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, x: photoDir * 26, scale: 1.015 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0.14 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+        </AnimatePresence>
         <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/22 pointer-events-none" />
 
-        {/* Photo gesture layer — sits above the image, below the info block.
-            A horizontal flick here pages photos instead of swiping the card. */}
-        {isTop && photoCount > 1 && (
-          <motion.div
-            className="absolute inset-x-0 top-0 bottom-[186px] z-10"
-            drag="x"
-            dragDirectionLock
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.12}
-            onDragStart={() => { dragging.current = true }}
-            onDragEnd={(_, info) => {
-              requestAnimationFrame(() => { dragging.current = false })
-              if (info.offset.x < -45 || info.velocity.x < -420) step(1)
-              else if (info.offset.x > 45 || info.velocity.x > 420) step(-1)
-            }}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-          />
-        )}
-        {isTop && photoCount <= 1 && (
-          <div
-            className="absolute inset-x-0 top-0 bottom-[186px] z-10"
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-          />
+        {/* Photo tap zones — left/right thirds page photos.
+            NOTE: these are plain tap targets, NOT a nested drag layer. A nested
+            drag layer here captured the pointer and killed the card's own swipe. */}
+        {isTop && (
+          <div className="absolute inset-x-0 top-0 bottom-[186px] z-10 flex">
+            <div className="w-[32%] h-full" onPointerDown={onPointerDown} onPointerUp={(e) => onPointerUp(e, -1)} />
+            <div className="flex-1 h-full" onPointerDown={onPointerDown} onPointerUp={(e) => onPointerUp(e, 0)} />
+            <div className="w-[32%] h-full" onPointerDown={onPointerDown} onPointerUp={(e) => onPointerUp(e, 1)} />
+          </div>
         )}
 
         {/* stamps */}
@@ -166,7 +170,7 @@ export default function SwipeCard({ user, onSwipe, onOpen, isTop, index = 0 }) {
         {/* info block — dots live in the lower section, right above the name */}
         <div className="absolute bottom-0 left-0 right-0 z-20 text-white">
           <div className="px-5 pb-2.5">
-            <PhotoDots count={photoCount} index={photoIdx} onSelect={(i) => { haptic('light'); setPhotoIdx(i); completeHint('photoSwipe') }} />
+            <PhotoDots count={photoCount} index={photoIdx} onSelect={(i) => { haptic('light'); setPhotoDir(i > photoIdx ? 1 : -1); setPhotoIdx(i); completeHint('photoSwipe') }} />
           </div>
 
           <div className="px-5 pb-6 pointer-events-none">

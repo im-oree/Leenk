@@ -15,7 +15,11 @@ export default function EmptyState({ icon = 'compass', title, description, actio
       </div>
       <h3 className="font-display text-[18px] font-semibold tracking-[-0.02em]">{title}</h3>
       {description && <p className="text-[14px] muted mt-1.5 max-w-[280px] leading-relaxed">{description}</p>}
-      {action && <Button className="mt-5" onClick={onAction}>{action}</Button>}
+      {action && (
+        <Button variant="secondary" size="md" icon={icon === 'refresh' ? 'refresh' : undefined} className="mt-6 border hairline" onClick={onAction}>
+          {action}
+        </Button>
+      )}
     </motion.div>
   )
 }

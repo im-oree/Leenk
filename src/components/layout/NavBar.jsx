@@ -5,6 +5,7 @@ import Icon from '../ui/Icon'
 import { haptic } from '../../lib/haptics'
 import { useStore } from '../../lib/store'
 import { useNav } from './NavContext'
+import Tooltip from '../ui/Tooltip'
 
 const TABS = [
   { to: '/app/discover', icon: 'flame', label: 'Discover' },
@@ -42,8 +43,8 @@ export default function NavBar() {
               {TABS.map((tab, i) => {
                 const active = i === activeIndex
                 return (
+                  <Tooltip key={tab.to} label={tab.label}>
                   <button
-                    key={tab.to}
                     onClick={() => { haptic('light'); navigate(tab.to) }}
                     aria-label={tab.label}
                     aria-current={active ? 'page' : undefined}
@@ -78,6 +79,7 @@ export default function NavBar() {
                       {tab.label}
                     </span>
                   </button>
+                  </Tooltip>
                 )
               })}
             </div>

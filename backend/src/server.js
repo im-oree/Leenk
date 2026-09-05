@@ -8,6 +8,7 @@ import { config, isProd } from './lib/config.js'
 import { usingMemory } from './lib/firebase.js'
 import { studentHubHealth } from './services/studentHub.js'
 import { drainOutbox, outboxStats } from './services/outbox.js'
+import { seedConfig } from './services/appConfig.js'
 
 import authRoutes from './routes/auth.js'
 import profileRoutes from './routes/profile.js'
@@ -98,6 +99,8 @@ app.use((err, _req, res, _next) => {
 })
 
 /* --------------------------------- startup ---------------------------------- */
+await seedConfig().catch(() => {})
+
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`[leenk] API listening on :${config.port} (${config.env})`)
   console.log(`[leenk] store: ${usingMemory() ? 'in-memory (set FIREBASE_* to use Firestore)' : 'firestore'}`)
