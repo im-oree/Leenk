@@ -10,3 +10,7 @@ android/
 ios/
 backend/node_modules
 backend/.env
+
+# Vite dep caches (the verify harness uses its own so it can't invalidate dev)
+node_modules/.vite
+node_modules/.vite-verify

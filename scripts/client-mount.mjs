@@ -8,6 +8,11 @@
  */
 import { JSDOM } from 'jsdom'
 
+// vite-node starts its own Vite server. Without a private cacheDir it
+// re-optimizes deps into the SHARED node_modules/.vite, which invalidates the
+// browserHash of any dev server currently running and breaks the open tab.
+process.env.VITE_CACHE_DIR = 'node_modules/.vite-verify'
+
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',
   { url: 'http://localhost:5173/app/feed', pretendToBeVisual: true })
 
