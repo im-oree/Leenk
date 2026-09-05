@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import Page from '../../components/layout/Page'
@@ -12,8 +12,11 @@ import ListRow from '../../components/ui/ListRow'
 import EmptyState from '../../components/ui/EmptyState'
 import { Wordmark } from '../../components/brand/Logo'
 import { useStore } from '../../lib/store'
-import { STORIES } from '../../lib/mock'
 import { useNav } from '../../components/layout/NavContext'
+import { stories as storiesApi } from '../../lib/data'
+import { useAsync } from '../../lib/useAsync'
+import OfflineBanner from '../../components/ui/OfflineBanner'
+import Spinner from '../../components/ui/Spinner'
 
 export default function Feed() {
   const navigate = useNavigate()
@@ -22,6 +25,11 @@ export default function Feed() {
   const [moreFor, setMoreFor] = useState(null)
   const { setVisible } = useNav()
   const lastY = useRef(0)
+
+  // Story rail comes from the data layer (mock or live — identical shape).
+  const { data: railData, loading: railLoading, retry: reloadRail } =
+    useAsync(useCallback(() => storiesApi.rail(), []), [])
+  const rail = railData?.rail || []
 
   // Hide the nav bar while scrolling down, bring it back on scroll up.
   const onScroll = (e) => {
@@ -56,9 +64,12 @@ export default function Feed() {
             />
           </div>
 
+          <OfflineBanner />
+
           <StoryRail
-            stories={STORIES}
-            onOpen={(s) => navigate(`/app/story/${s.id}`)}
+            rail={rail}
+            loading={railLoading}
+            onOpen={(s) => navigate(`/app/story/${s.authorUid}`)}
             onAdd={() => navigate('/app/compose?type=story')}
           />
 

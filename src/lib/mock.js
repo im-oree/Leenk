@@ -141,9 +141,23 @@ export const POSTS = CANDIDATES.slice(0, 8).map((c, i) => ({
 }))
 
 export const STORIES = [
-  { id: 's0', author: { ...ME, name: 'Your story' }, mine: true, seen: false },
-  ...CANDIDATES.slice(0, 7).map((c, i) => ({ id: `s${i + 1}`, author: c, seen: i > 3 })),
+  { id: 's0', author: { ...ME, name: 'Your story' }, mine: true, seen: false,
+    items: [{ media: ME.photos?.[0] }] },
+  ...CANDIDATES.slice(0, 7).map((c, i) => ({
+    id: `s${i + 1}`,
+    author: c,
+    seen: i > 3,
+    at: Date.now() - (i + 1) * 1800_000,
+    items: (c.photos || []).slice(0, 2).map((m) => ({ media: m })),
+  })),
 ]
+
+// Which candidates currently have a live story — drives rings across the app.
+const STORY_AUTHORS = new Set(CANDIDATES.slice(0, 7).map((c) => c.uid))
+CANDIDATES.forEach((c, i) => {
+  c.hasActiveStory = STORY_AUTHORS.has(c.uid)
+  c.hasUnseenStory = c.hasActiveStory && i <= 3
+})
 
 export const NOTIFICATIONS = [
   { id: 'n1', type: 'match', title: 'You matched with Zara', body: 'Say something before the vibe cools.', at: Date.now() - 900_000, unread: true },

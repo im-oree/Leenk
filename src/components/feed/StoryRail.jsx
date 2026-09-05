@@ -1,39 +1,54 @@
 import { motion } from 'framer-motion'
-import Avatar from '../ui/Avatar'
-import Icon from '../ui/Icon'
-import { haptic } from '../../lib/haptics'
+import StoryRing from './StoryRing'
 
-export default function StoryRail({ stories, onOpen, onAdd }) {
+/**
+ * Story rail.
+ *
+ * Consumes the API's rail shape directly (one entry per author, unseen first):
+ *   { authorUid, name, avatar, verified, isMe, hasUnseen, count, items[] }
+ *
+ * Skeletons render while loading so the row doesn't pop in and shift the feed.
+ */
+export default function StoryRail({ rail = [], loading = false, onOpen, onAdd }) {
+  if (loading && !rail.length) {
+    return (
+      <div className="flex gap-3.5 overflow-hidden px-4 py-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 w-[68px]">
+            <div className="w-[60px] h-[60px] rounded-full skeleton" />
+            <div className="w-10 h-2 rounded-full skeleton" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (!rail.length) return null
+
   return (
     <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-4 py-3">
-      {stories.map((s, i) => (
-        <motion.button
-          key={s.id}
+      {rail.map((s, i) => (
+        <motion.div
+          key={s.authorUid}
           initial={{ opacity: 0, x: 14 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: Math.min(i * 0.035, 0.3), duration: 0.32 }}
-          whileTap={{ scale: 0.93 }}
-          onClick={() => { haptic('light'); s.mine ? onAdd?.() : onOpen?.(s) }}
+          transition={{ delay: Math.min(i * 0.035, 0.3), duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center gap-1.5 shrink-0 w-[68px]"
         >
-          <span className="relative">
-            <span
-              className={`block rounded-full p-[2.5px] ${
-                s.mine ? 'bg-[color:var(--app-border)]' : s.seen ? 'bg-[color:var(--app-border)]' : 'brand-fill'
-              }`}
-            >
-              <span className="block rounded-full p-[2px] bg-[color:var(--app-bg)]">
-                <Avatar src={s.author.photos[0]} name={s.author.name} size={54} />
-              </span>
-            </span>
-            {s.mine && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-[22px] h-[22px] rounded-full brand-fill grid place-items-center border-2" style={{ borderColor: 'var(--app-bg)' }}>
-                <Icon name="plus" size={12} strokeWidth={2.6} className="text-white" />
-              </span>
-            )}
+          <StoryRing
+            src={s.avatar}
+            name={s.name}
+            size={54}
+            hasStory={s.count > 0}
+            hasUnseen={s.hasUnseen}
+            isMe={s.isMe}
+            showAdd={s.isMe}
+            onClick={() => (s.isMe && !s.count ? onAdd?.() : onOpen?.(s))}
+          />
+          <span className="text-[11.5px] muted truncate w-full text-center leading-tight">
+            {s.isMe ? 'Your story' : s.name}
           </span>
-          <span className="text-[11.5px] muted truncate w-full text-center leading-tight">{s.author.name}</span>
-        </motion.button>
+        </motion.div>
       ))}
     </div>
   )

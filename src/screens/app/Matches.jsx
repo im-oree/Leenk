@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Page from '../../components/layout/Page'
 import Header from '../../components/layout/Header'
 import Avatar from '../../components/ui/Avatar'
+import StoryRing from '../../components/feed/StoryRing'
 import Input from '../../components/ui/Input'
 import Icon from '../../components/ui/Icon'
 import EmptyState from '../../components/ui/EmptyState'
@@ -49,7 +50,8 @@ export default function Matches() {
                 >
                   <span className="rounded-full p-[2.5px] brand-fill">
                     <span className="block rounded-full p-[2px] bg-[color:var(--app-bg)]">
-                      <Avatar src={m.user.photos[0]} name={m.user.name} size={56} />
+                      <StoryRing src={m.user.photos[0]} name={m.user.name} size={56}
+                        hasStory={!!m.user.hasActiveStory} hasUnseen={!!m.user.hasUnseenStory} />
                     </span>
                   </span>
                   <span className="text-[11.5px] font-medium truncate w-full text-center">{m.user.name}</span>
@@ -71,7 +73,8 @@ export default function Matches() {
                   onClick={() => navigate(`/app/chat/${m.id}`)}
                   className="w-full flex items-center gap-3.5 px-4 py-3 active:bg-[color:var(--app-elev)] text-left"
                 >
-                  <Avatar src={m.user.photos[0]} name={m.user.name} size="lg" online={m.unread > 0} />
+                  <StoryRing src={m.user.photos[0]} name={m.user.name} size={56}
+                    hasStory={!!m.user.hasActiveStory} hasUnseen={!!m.user.hasUnseenStory} />
                   <span className="flex-1 min-w-0">
                     <span className="flex items-center gap-2">
                       <span className="font-semibold text-[15px] truncate">{m.user.name}</span>

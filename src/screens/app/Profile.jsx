@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Page from '../../components/layout/Page'
 import Header from '../../components/layout/Header'
 import Avatar from '../../components/ui/Avatar'
+import StoryRing from '../../components/feed/StoryRing'
 import Icon from '../../components/ui/Icon'
 import IconButton from '../../components/ui/IconButton'
 import Button from '../../components/ui/Button'
@@ -45,7 +46,10 @@ export default function Profile() {
           className="px-5 pt-4"
         >
           <div className="flex items-center gap-4">
-            <Avatar src={me.photos[0]} name={me.name} size="2xl" verified={verificationStatus === 'verified'} />
+            <StoryRing src={me.photos[0]} name={me.name} size={108} isMe showAdd
+              hasStory={!!me.hasActiveStory} hasUnseen={false}
+              verified={verificationStatus === 'verified'}
+              onClick={() => navigate(me.hasActiveStory ? `/app/story/${me.uid}` : '/app/compose?type=story')} />
             <div className="flex-1 min-w-0">
               <h1 className="font-display text-[24px] font-semibold tracking-[-0.03em] truncate leading-tight">
                 {me.name}, {me.age}

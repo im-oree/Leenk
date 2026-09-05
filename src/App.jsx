@@ -26,9 +26,10 @@ import Chat from './screens/app/Chat'
 import Profile from './screens/app/Profile'
 import UserProfile from './screens/app/UserProfile'
 import {
-  Notifications, Likes, Compose, PostDetail, TrustCenter, SafetyCenter,
+  Notifications, Likes, PostDetail, TrustCenter, SafetyCenter,
   ReportFlow, Premium, EditProfile, CampusPage, StoryViewer, SharePage,
 } from './screens/app/misc'
+import Composer from './screens/app/Composer'
 
 import Settings from './screens/settings/Settings'
 import {
@@ -100,7 +101,7 @@ function Shell() {
 
           <Route path="/app/notifications" element={<Gate><Notifications /></Gate>} />
           <Route path="/app/likes" element={<Gate><Likes /></Gate>} />
-          <Route path="/app/compose" element={<Gate><Compose /></Gate>} />
+          <Route path="/app/compose" element={<Gate><Composer /></Gate>} />
           <Route path="/app/trust" element={<Gate><TrustCenter /></Gate>} />
           <Route path="/app/safety" element={<Gate><SafetyCenter /></Gate>} />
           <Route path="/app/report" element={<Gate><ReportFlow /></Gate>} />
