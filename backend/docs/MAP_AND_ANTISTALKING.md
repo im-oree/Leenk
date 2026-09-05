@@ -45,9 +45,21 @@ Use **MapLibre GL JS** (BSD, no key, no account) with a free raster/vector
 tile source. Do **not** use Google Maps or Mapbox — both require a billing
 account, which breaks the zero-cost constraint.
 
-Tile source needs a decision (see §7): raw `tile.openstreetmap.org` forbids
-heavy app use under its tile usage policy, so we either self-host tiles or use
-a free-tier provider. This is a real blocker, not a detail.
+**Tile source: OpenFreeMap — RESOLVED.** `https://tiles.openfreemap.org/styles/liberty`
+serves OpenMapTiles-based vector tiles with **no API key, no account, and no
+usage limits**, which clears the zero-cost constraint that previously blocked
+this feature. It is donation-funded (we should sponsor it if the map ships).
+
+Styles available: `positron`, `bright`, `liberty`, `dark`, `fiord`, `3d`.
+`positron` and `dark` map cleanly onto our light/dark themes.
+
+Two caveats worth planning for:
+- It is a single volunteer-funded service, so treat it as a dependency that
+  could degrade. The provider is one config value (`map.tileStyleUrl` in
+  appConfig) so we can repoint it without a deploy, and the full planet
+  images are downloadable for self-hosting if we ever need to.
+- Custom styling is done in Maputnik and the resulting style JSON must be
+  **self-hosted** — which we want anyway, to strip POI labels we don't need.
 
 Custom drawing on top (campus buildings, walkways, our own colour ramp) is a
 styled vector layer plus GeoJSON overlays for campus geometry — we already
@@ -231,10 +243,7 @@ StudentHub and Leenk. Two rules keep that from becoming a leak:
 
 ## 7. Open questions (need a decision before building)
 
-1. **Tile hosting.** OSM's public tile server forbids app-scale use.
-   Self-host (needs a server + storage, ongoing cost) or free-tier provider
-   (most require a key/card — conflicts with the zero-cost rule)? This blocks
-   the map.
+1. ~~Tile hosting.~~ **Resolved: OpenFreeMap** (no key, no card). See §2.1.
 2. **Is `matches`-only enough**, or is campus-level visibility to all verified
    students wanted? The latter is a much larger exposure surface.
 3. **Ghost mode free or paid?** Recommendation: **free**. Charging for a safety
