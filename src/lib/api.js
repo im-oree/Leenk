@@ -88,6 +88,33 @@ export const api = {
   locationPolicy: () => request('/location/policy'),
   campusPlaces: (campusId) => request(`/location/campus/${campusId}/places`),
 
+  /* media */
+  uploadImage: (image, surface = 'post') => request('/media/image', { method: 'POST', body: { image, surface } }),
+  uploadImages: (images, surface = 'profile') => request('/media/image/batch', { method: 'POST', body: { images, surface } }),
+  mediaConfig: () => request('/media/config'),
+
+  /* stories & notes */
+  stories: () => request('/stories'),
+  createStory: (story) => request('/stories', { method: 'POST', body: story }),
+  viewStory: (id) => request(`/stories/${id}/view`, { method: 'POST' }),
+  deleteStory: (id) => request(`/stories/${id}`, { method: 'DELETE' }),
+  notes: () => request('/stories/notes'),
+  setNote: (text, music) => request('/stories/notes', { method: 'POST', body: { text, music } }),
+  clearNote: () => request('/stories/notes', { method: 'DELETE' }),
+
+  /* chat extras */
+  editMessage: (matchId, mid, text) => request(`/matches/${matchId}/messages/${mid}`, { method: 'PATCH', body: { text } }),
+  deleteMessage: (matchId, mid, scope = 'me') => request(`/matches/${matchId}/messages/${mid}?scope=${scope}`, { method: 'DELETE' }),
+  markRead: (matchId) => request(`/matches/${matchId}/read`, { method: 'POST' }),
+
+  /* calls (WebRTC signalling) */
+  callConfig: () => request('/calls/config'),
+  startCall: (peerUid, kind, offer) => request('/calls', { method: 'POST', body: { peerUid, kind, offer } }),
+  answerCall: (id, answer) => request(`/calls/${id}/answer`, { method: 'POST', body: { answer } }),
+  sendCandidate: (id, candidate) => request(`/calls/${id}/candidate`, { method: 'POST', body: { candidate } }),
+  pollCall: (id) => request(`/calls/${id}`),
+  endCall: (id, reason) => request(`/calls/${id}/end`, { method: 'POST', body: { reason } }),
+
   /* safety */
   report: (payload) => request('/safety/report', { method: 'POST', body: payload }),
   shareMeetup: (payload) => request('/safety/meetup', { method: 'POST', body: payload }),

@@ -66,10 +66,10 @@ router.get('/stack', async (req, res, next) => {
     const filters = me.filters || {}
 
     // Blocks in both directions.
-    const blkSnap = await db().collection('blocks').where('actorUid', '==', me.uid).get()
-    const blkBySnap = await db().collection('blocks').where('targetUid', '==', me.uid).get()
-    const blocked = new Set(blkSnap.docs.map((d) => d.data().targetUid))
-    const blockedBy = new Set(blkBySnap.docs.map((d) => d.data().actorUid))
+    const blkSnap = await db().collection('blocks').where('blockerUid', '==', me.uid).get()
+    const blkBySnap = await db().collection('blocks').where('blockedUid', '==', me.uid).get()
+    const blocked = new Set(blkSnap.docs.map((d) => d.data().blockedUid))
+    const blockedBy = new Set(blkBySnap.docs.map((d) => d.data().blockerUid))
 
     // Who already liked me — biggest single ranking signal.
     const likedMeSnap = await db().collection('swipes')

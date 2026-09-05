@@ -52,6 +52,20 @@ export function auth() {
   return _auth
 }
 
+/**
+ * Firebase Cloud Messaging. Returns null when running on the in-memory dev
+ * store, so notification code can no-op cleanly instead of throwing.
+ */
+export function messaging() {
+  init()
+  if (_usingMemory) return null
+  try {
+    return admin.messaging() || null
+  } catch {
+    return null
+  }
+}
+
 export function usingMemory() {
   init()
   return _usingMemory

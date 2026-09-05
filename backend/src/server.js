@@ -18,6 +18,10 @@ import feedRoutes from './routes/feed.js'
 import locationRoutes from './routes/location.js'
 import verificationRoutes from './routes/verification.js'
 import safetyRoutes from './routes/safety.js'
+import mediaRoutes from './routes/media.js'
+import storyRoutes from './routes/stories.js'
+import callRoutes from './routes/calls.js'
+import adminRoutes from './routes/admin.js'
 
 const app = express()
 
@@ -83,6 +87,10 @@ app.use('/api/feed', feedRoutes)
 app.use('/api/location', locationRoutes)
 app.use('/api/verification', verificationRoutes)
 app.use('/api/safety', safetyRoutes)
+app.use('/api/media', mediaRoutes)
+app.use('/api/stories', storyRoutes)
+app.use('/api/calls', callRoutes)
+app.use('/api/admin', adminRoutes)
 
 /* -------------------------------- fallbacks --------------------------------- */
 app.use((req, res) => res.status(404).json({ error: 'Not found', path: req.path }))
