@@ -53,6 +53,7 @@ export default function CampusMap() {
   useEffect(() => { if (cfg?.settings) setSettings(cfg.settings) }, [cfg])
 
   const pins = pinData?.pins || []
+  const heatmap = pinData?.heatmap || []
   const styleUrl = theme === 'dark' ? cfg?.tileStyleUrlDark : cfg?.tileStyleUrl
 
   /* ------------------------------ map init ------------------------------ */
@@ -89,6 +90,52 @@ export default function CampusMap() {
       mapRef.current = null
     }
   }, [styleUrl])
+
+  /* --------------------------- crowd heatmap ---------------------------- *
+   * Anonymous density only: these cells are aggregated server-side over a
+   * ~1km grid with a minimum occupancy, and carry no uid, name or time.
+   * Rendered UNDER the pins so a friend's face is never obscured by crowd.
+   */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+
+    const data = {
+      type: 'FeatureCollection',
+      features: heatmap.map((c) => ({
+        type: 'Feature',
+        properties: { count: c.count },
+        geometry: { type: 'Point', coordinates: [c.lng, c.lat] },
+      })),
+    }
+
+    const src = map.getSource('crowd')
+    if (src) { src.setData(data); return }
+    if (!heatmap.length) return
+
+    map.addSource('crowd', { type: 'geojson', data })
+    map.addLayer({
+      id: 'crowd-heat',
+      type: 'heatmap',
+      source: 'crowd',
+      paint: {
+        // Weight by how busy a cell is, capped so one packed lecture hall
+        // doesn't wash out the rest of campus.
+        'heatmap-weight': ['interpolate', ['linear'], ['get', 'count'], 0, 0, 20, 1],
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 11, 1, 17, 2.4],
+        'heatmap-color': [
+          'interpolate', ['linear'], ['heatmap-density'],
+          0.0, 'rgba(251,63,109,0)',
+          0.2, 'rgba(251,63,109,0.16)',
+          0.45, 'rgba(251,63,109,0.34)',
+          0.7, 'rgba(255,92,133,0.52)',
+          1.0, 'rgba(214,19,80,0.66)',
+        ],
+        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 11, 18, 15, 44, 18, 80],
+        'heatmap-opacity': 0.85,
+      },
+    })
+  }, [heatmap, ready])
 
   /* ---------------------------- render pins ----------------------------- */
   const openPin = useCallback((p) => {
@@ -161,7 +208,7 @@ export default function CampusMap() {
     await campusMap.settings(patch)
   }
 
-  const invisible = !settings || settings.visibility === 'off' || settings.ghost
+  const invisible = !settings || settings.visibility !== 'mutuals' || settings.ghost
 
   return (
     <Page
@@ -172,7 +219,7 @@ export default function CampusMap() {
         <Header
           back
           title="Campus map"
-          subtitle={pinData ? `${pinData.onCampusCount ?? 0} on campus` : 'Loading…'}
+          subtitle={pinData ? `${pinData.onCampusCount ?? 0} on campus` : 'Loading\u2026'}
           right={
             <button
               onClick={() => { haptic('light'); setSettingsOpen(true) }}
@@ -218,7 +265,7 @@ export default function CampusMap() {
               <Icon name="eyeOff" size={17} className="muted shrink-0" />
               <span className="flex-1 min-w-0">
                 <span className="block text-[13.5px] font-medium">You're not on the map</span>
-                <span className="block text-[11.5px] muted">Others can't see your location.</span>
+                <span className="block text-[11.5px] muted">Mutuals can't see your location.</span>
               </span>
               <span className="text-[12.5px] font-semibold brand-text shrink-0">Change</span>
             </motion.button>
@@ -252,9 +299,9 @@ export default function CampusMap() {
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Who can see you">
         <div className="-mx-1">
           {[
-            { id: 'off', label: 'Nobody', blurb: "You won't appear on the map" },
-            { id: 'matches', label: 'Matches only', blurb: 'Only people you matched with' },
-            { id: 'campus', label: 'My campus', blurb: 'Verified students at your school' },
+            { id: 'off', label: 'Nobody', blurb: "You won't appear at all, not even in the crowd count" },
+            { id: 'heatmap', label: 'Crowd only', blurb: 'Counted anonymously in busy areas — no pin, no name' },
+            { id: 'mutuals', label: 'Mutuals', blurb: 'People you follow who follow you back, and your matches' },
           ].map((o) => (
             <ListRow
               key={o.id}
@@ -283,8 +330,8 @@ export default function CampusMap() {
           </div>
 
           <p className="px-4 pt-3 pb-1 text-[11.5px] muted leading-relaxed">
-            Your location is always approximate and delayed — never live. You're
-            only shown when enough people are nearby to keep it anonymous.
+            Your location is always approximate and delayed — never live. Only
+            mutuals can see your pin, and only if you chose to share it.
           </p>
         </div>
       </Sheet>

@@ -106,6 +106,13 @@ export default function UserProfile() {
             <Badge icon="cap" size="sm">{user.department}</Badge>
             <Badge icon="pin" size="sm">{user.distanceKm === 0 ? 'Same campus' : `${user.distanceKm} km away`}</Badge>
             <Badge icon="sparkline" size="sm">{user.level} level</Badge>
+            {/* Count only, never a browsable list — a follower list on a
+                dating app enumerates someone's social circle to strangers. */}
+            {user.mutualCount > 0 && (
+              <Badge icon="users" size="sm">
+                {user.mutualCount} mutual{user.mutualCount === 1 ? '' : 's'}
+              </Badge>
+            )}
           </div>
 
           <p className="text-[15px] leading-relaxed">{user.bio}</p>

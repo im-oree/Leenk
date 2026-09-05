@@ -376,7 +376,7 @@ export const campusMap = {
         success: true, enabled: true, ghostIsFree: true, kAnonymity: 3,
         tileStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
         tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/dark',
-        settings: { visibility: 'off', ghost: false, hiddenFrom: [] },
+        settings: { visibility: 'mutuals', ghost: false, hiddenFrom: [] },
       })
     }
     return api.mapConfig()

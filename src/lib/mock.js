@@ -74,6 +74,8 @@ export const CANDIDATES = NAMES.map(([name, gender, age], i) => ({
   uid: `u${i + 1}`,
   name,
   age,
+  // Count only — Leenk never exposes a browsable follower/following list.
+  mutualCount: [0, 3, 1, 7, 0, 2, 5, 0, 4, 1][i % 10],
   gender,
   campusId: CAMPUSES[i % CAMPUSES.length].id,
   department: DEPARTMENTS[(i * 3) % DEPARTMENTS.length],
@@ -256,7 +258,26 @@ export const MOCK_MAP = () => {
       lastSeen: staleness[i % staleness.length],
     }
   })
-  return { enabled: true, pins, onCampusCount: pins.length + 6, suppressed: 6, kAnonymity: 3 }
+  // Anonymous crowd density. Coarser grid than pins, minimum occupancy of 3,
+  // and no identity of any kind — mirrors buildHeatmap() on the backend.
+  const heatmap = [
+    { lat: 6.8921, lng: 3.7190, count: 24 },   // student centre
+    { lat: 6.8894, lng: 3.7152, count: 17 },   // library
+    { lat: 6.8940, lng: 3.7223, count: 11 },   // cafeteria
+    { lat: 6.8869, lng: 3.7205, count: 6 },
+    { lat: 6.8955, lng: 3.7161, count: 4 },
+  ]
+
+  // Only mutuals who chose to share get a pin; the rest are crowd only.
+  const shown = pins.slice(0, 3)
+  return {
+    enabled: true,
+    pins: shown,
+    heatmap,
+    onCampusCount: heatmap.reduce((n, c) => n + c.count, 0) + shown.length,
+    suppressed: 0,
+    heatmapMinCount: 3,
+  }
 }
 
 /* ------------------------------------------------------------------ *

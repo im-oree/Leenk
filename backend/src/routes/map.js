@@ -46,7 +46,7 @@ router.get('/', requireVerified, mapLimiter, async (req, res, next) => {
 
 /* -------------------------- PATCH /api/map/settings ---------------------- */
 const settingsSchema = z.object({
-  visibility: z.enum(['off', 'campus', 'matches']).optional(),
+  visibility: z.enum(['off', 'heatmap', 'mutuals']).optional(),
   ghost: z.boolean().optional(),
   hiddenFrom: z.array(z.string()).optional(),
 })

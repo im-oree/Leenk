@@ -23,8 +23,19 @@ import { config } from '../lib/config.js'
 
 const DEFAULTS = {
   enabled: true,
-  visibilityDefault: 'off',        // off | campus | matches
+  // off      — invisible everywhere, not even counted
+  // heatmap  — counted anonymously in the crowd heatmap, but NO pin
+  // mutuals  — pin visible to mutuals only, plus counted in the heatmap
+  visibilityDefault: 'off',
   kAnonymity: 3,
+  // The heatmap aggregates over a COARSER grid than pins. A 250m cell with a
+  // count of 2 is close to naming someone; ~1km buckets keep "how busy is the
+  // library" answerable without turning the crowd into a tracker.
+  heatmapCellPrecision: 4,
+  heatmapMinCount: 3,
+  // A match is a stronger mutual signal than a follow, so it also grants
+  // mutual status. Hot-editable if that ever proves wrong.
+  mutualsIncludeMatches: true,
   minPublishDelayMs: 10 * 60 * 1000,
   maxPublishDelayMs: 30 * 60 * 1000,
   pinTtlMs: 8 * 60 * 60 * 1000,    // pins expire after 8h with no update
@@ -52,11 +63,49 @@ export function stalenessLabel(at, now = Date.now()) {
 
 export function getVisibility(user) {
   const m = user?.mapSettings || {}
+  let visibility = m.visibility || DEFAULTS.visibilityDefault
+  // Legacy migration. 'campus' used to mean "any verified student on my
+  // campus can see my pin" — that is exactly what we are removing, so it
+  // downgrades to the safer setting rather than silently broadening reach.
+  if (visibility === 'campus') visibility = 'heatmap'
+  if (visibility === 'matches') visibility = 'mutuals'
+  if (!['off', 'heatmap', 'mutuals'].includes(visibility)) visibility = 'off'
   return {
-    visibility: m.visibility || DEFAULTS.visibilityDefault,
+    visibility,
     ghost: Boolean(m.ghost),
     hiddenFrom: m.hiddenFrom || [],
   }
+}
+
+/**
+ * Mutual = you follow each other. A match counts too (mutual opt-in, and a
+ * stronger signal than a follow).
+ *
+ * This is the ONLY relationship that unlocks a pin. Being on the same campus
+ * grants nothing but an anonymous +1 in the heatmap.
+ */
+export async function mutualsOf(uid) {
+  const c = mapConfig()
+  const [outSnap, inSnap, matchSnap] = await Promise.all([
+    db().collection('follows').where('followerUid', '==', uid).get(),
+    db().collection('follows').where('followingUid', '==', uid).get(),
+    c.mutualsIncludeMatches
+      ? db().collection('matches').where('users', 'array-contains', uid).get()
+      : Promise.resolve({ docs: [] }),
+  ])
+
+  const following = new Set(outSnap.docs.map((d) => d.data().followingUid))
+  const mutual = new Set()
+  for (const d of inSnap.docs) {
+    const follower = d.data().followerUid
+    if (following.has(follower)) mutual.add(follower)
+  }
+  for (const d of matchSnap.docs) {
+    const m = d.data()
+    if (m.status !== 'active') continue   // unmatch revokes immediately
+    for (const u of m.users || []) if (u !== uid) mutual.add(u)
+  }
+  return mutual
 }
 
 /**
@@ -67,7 +116,11 @@ export function canSee(viewer, target, ctx) {
   if (viewer.uid === target.uid) return true
 
   const t = getVisibility(target)
-  if (t.visibility === 'off') return false
+  // Two independent conditions, both required:
+  //   1. THEY chose to share  (visibility === 'mutuals')
+  //   2. the two of you are mutuals
+  // Neither one alone is enough.
+  if (t.visibility !== 'mutuals') return false
   // Ghost mode: sees others, is never seen.
   if (t.ghost) return false
   // Quiet per-person hiding — safer than blocking, which can escalate a
@@ -75,9 +128,46 @@ export function canSee(viewer, target, ctx) {
   if (t.hiddenFrom.includes(viewer.uid)) return false
   // Blocks remove presence in BOTH directions, permanently.
   if (ctx.blocked) return false
-  if (t.visibility === 'matches' && !ctx.matched) return false
-  if (t.visibility === 'campus' && viewer.campusId !== target.campusId) return false
+  if (!ctx.mutual) return false
   return true
+}
+
+/* -------------------------------- heatmap -------------------------------- */
+
+/**
+ * Anonymous crowd density — the Snapchat-style "where is everyone" layer.
+ *
+ * Counts people you have NO relationship with, which is the whole point, so
+ * it must never be reversible to an individual:
+ *   - coarser grid than pins (~1km, not 250m)
+ *   - cells below `heatmapMinCount` are dropped entirely, not rounded down
+ *   - no uids, names, photos or timestamps ever enter the output
+ *   - only people who opted in ('heatmap' or 'mutuals') are counted at all
+ */
+export function buildHeatmap(locations, { now = Date.now() } = {}) {
+  const c = mapConfig()
+  const buckets = new Map()
+
+  for (const loc of locations) {
+    const key = `${loc.lat.toFixed(c.heatmapCellPrecision)}:${loc.lng.toFixed(c.heatmapCellPrecision)}`
+    const b = buckets.get(key) || { lat: 0, lng: 0, count: 0 }
+    b.lat += loc.lat
+    b.lng += loc.lng
+    b.count += 1
+    buckets.set(key, b)
+  }
+
+  const cells = []
+  for (const [, b] of buckets) {
+    if (b.count < c.heatmapMinCount) continue   // drop, never round
+    cells.push({
+      // Centroid of the bucket, so the point isn't any one person's cell.
+      lat: Number((b.lat / b.count).toFixed(c.heatmapCellPrecision)),
+      lng: Number((b.lng / b.count).toFixed(c.heatmapCellPrecision)),
+      count: b.count,
+    })
+  }
+  return cells.sort((a, b) => b.count - a.count)
 }
 
 /* ----------------------------- publish delay ----------------------------- */
@@ -115,19 +205,13 @@ export async function buildMap(viewer) {
   const now = Date.now()
   const cutoff = now - c.pinTtlMs
 
-  const [locSnap, matchSnap, blockA, blockB] = await Promise.all([
+  const [locSnap, mutual, blockA, blockB] = await Promise.all([
     db().collection('userLocations').where('campusId', '==', viewer.campusId).get(),
-    db().collection('matches').where('users', 'array-contains', viewer.uid).get(),
+    mutualsOf(viewer.uid),
     db().collection('blocks').where('blockerUid', '==', viewer.uid).get(),
     db().collection('blocks').where('blockedUid', '==', viewer.uid).get(),
   ])
 
-  const matched = new Set()
-  for (const d of matchSnap.docs) {
-    const m = d.data()
-    if (m.status !== 'active') continue      // unmatch revokes immediately
-    for (const u of m.users || []) if (u !== viewer.uid) matched.add(u)
-  }
   const blocked = new Set([
     ...blockA.docs.map((d) => d.data().blockedUid),
     ...blockB.docs.map((d) => d.data().blockerUid),
@@ -145,28 +229,44 @@ export async function buildMap(viewer) {
     }),
   )
 
-  const permitted = users.filter(Boolean).filter(({ loc, user }) =>
-    canSee(viewer, user, { matched: matched.has(user.uid), blocked: blocked.has(user.uid) }) &&
+  const live = users.filter(Boolean)
+
+  // Heatmap population: everyone who opted in to being counted, EXCLUDING
+  // anyone blocked in either direction and anyone ghosting. Deliberately
+  // independent of the pin permission check — that is the point of the layer.
+  const countable = live.filter(({ loc, user }) => {
+    const v = getVisibility(user)
+    if (v.visibility === 'off' || v.ghost) return false
+    if (blocked.has(user.uid)) return false
+    return isPublishable(loc, now)
+  })
+
+  const permitted = live.filter(({ loc, user }) =>
+    canSee(viewer, user, { mutual: mutual.has(user.uid), blocked: blocked.has(user.uid) }) &&
     isPublishable(loc, now),
   )
 
-  // k-anonymity on the PERMITTED set.
-  const byCell = new Map()
-  for (const p of permitted) {
-    if (!byCell.has(p.loc.cellId)) byCell.set(p.loc.cellId, [])
-    byCell.get(p.loc.cellId).push(p)
-  }
-
+  // NOTE ON k-ANONYMITY.
+  // k-anon used to gate pins, and it was correct when 'campus' visibility
+  // meant any verified student could see you: it stopped a stranger inferring
+  // an individual from a sparse cell.
+  //
+  // Under the mutuals-only model it is both unnecessary and harmful:
+  //   - unnecessary, because the target explicitly chose to share with
+  //     mutuals and the viewer is a confirmed mutual. Consent is specific
+  //     and reciprocal, which is a stronger guarantee than anonymity.
+  //   - harmful, because you rarely have 3 mutuals standing in the same 250m
+  //     cell, so pins would almost never render and the feature would look
+  //     broken. Suppressing a friend who deliberately shared with you is a
+  //     privacy control the user did not ask for.
+  //
+  // Anonymity now lives where the strangers are: the heatmap, which enforces
+  // heatmapMinCount and a coarser grid. Pins are governed by consent.
   const pins = []
-  let suppressed = 0
-  for (const [cellId, group] of byCell) {
-    if (group.length < c.kAnonymity) {
-      // Below k: nobody in this cell gets a position. They fall back to the
-      // campus-level "on campus" state, which carries no location.
-      suppressed += group.length
-      continue
-    }
-    for (const { loc, user } of group) {
+  const suppressed = 0
+  {
+    for (const { loc, user } of permitted) {
+      const cellId = loc.cellId
       pins.push({
         uid: user.uid,
         name: user.name,
@@ -180,12 +280,22 @@ export async function buildMap(viewer) {
     }
   }
 
+  // Pinned people are already individually visible, so counting them in the
+  // heatmap too would double-draw them. The heatmap is the anonymous layer.
+  const pinnedUids = new Set(pins.map((p) => p.uid))
+  const heatmap = buildHeatmap(
+    countable.filter(({ user }) => !pinnedUids.has(user.uid)).map(({ loc }) => loc),
+    { now },
+  )
+
   return {
     enabled: true,
     pins,
-    onCampusCount: permitted.length,   // ambient count, no positions
+    heatmap,
+    onCampusCount: countable.length,   // ambient count, no positions
     suppressed,                        // for our own metrics, not a leak
-    kAnonymity: c.kAnonymity,
+    // Reported so the client can explain the heatmap's minimum, not pins.
+    heatmapMinCount: c.heatmapMinCount,
   }
 }
 

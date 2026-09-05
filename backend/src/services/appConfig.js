@@ -156,8 +156,12 @@ export const DEFAULTS = {
 
   map: {
     enabled: true,
-    visibilityDefault: 'off',      // opt-in only — nobody is mapped by accident
+    // off | heatmap | mutuals. Opt-in only — nobody is mapped by accident.
+    visibilityDefault: 'off',
     kAnonymity: 3,                 // a pin needs >=3 people in its cell
+    heatmapCellPrecision: 4,       // ~1km buckets, coarser than the 250m pins
+    heatmapMinCount: 3,            // drop sparse cells entirely, never round
+    mutualsIncludeMatches: true,   // a match implies mutual opt-in
     minPublishDelayMs: 600000,     // 10 min — defeats real-time interception
     maxPublishDelayMs: 1800000,    // 30 min
     pinTtlMs: 28800000,            // 8h

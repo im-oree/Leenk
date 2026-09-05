@@ -6,6 +6,7 @@ import { toStudentHub, PUSH_FIELDS, PRIVATE_TO_LEENK } from '../services/profile
 import { enqueue } from '../services/outbox.js'
 import { getTrust } from '../services/trust.js'
 import { distanceBetween } from '../services/location.js'
+import { mutualsOf } from '../services/map.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -79,9 +80,21 @@ router.get('/:uid', requireVerified, async (req, res, next) => {
 
     const dist = await distanceBetween(req.user.uid, d.uid)
 
+    // Mutual connections, as a COUNT only.
+    //
+    // We deliberately do not expose a browsable follower/following list. On a
+    // dating app that list is a targeting tool: it enumerates who someone
+    // knows, and it lets a stranger map a person's social circle before ever
+    // speaking to them. A count answers the only question that actually helps
+    // a user ("do we know the same people?") without handing over the graph.
+    const [mine, theirs] = await Promise.all([mutualsOf(req.user.uid), mutualsOf(d.uid)])
+    let mutualCount = 0
+    for (const u of mine) if (theirs.has(u)) mutualCount += 1
+
     res.json({
       success: true,
       profile: {
+        mutualCount,
         uid: d.uid, name: d.name, age: d.age, photos: d.photos || [],
         bio: d.bio || '', prompts: d.prompts || [],
         campusId: d.campusId, department: d.department, level: d.level, intent: d.intent,

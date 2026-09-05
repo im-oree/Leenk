@@ -262,3 +262,77 @@ StudentHub and Leenk. Two rules keep that from becoming a leak:
 5. Co-location baselines (§5.2) — last, and advisory only.
 
 Shipping 3 before 1 and 4 would be the mistake.
+
+---
+
+## Revision: mutuals-only pins + anonymous crowd heatmap
+
+Supersedes the earlier `off | campus | matches` model.
+
+### Visibility levels
+
+| Level | Pin on the map | Counted in heatmap |
+|---|---|---|
+| `off` | no | no |
+| `heatmap` | no | yes, anonymously |
+| `mutuals` | yes, to mutuals only | yes |
+
+Default remains `off`. Legacy values migrate **downwards**, never wider:
+`campus -> heatmap` (it used to expose a pin campus-wide, which this model
+removes) and `matches -> mutuals`. Any unrecognised value fails closed to `off`.
+
+### The two-condition rule
+
+A pin renders only when **both** hold:
+
+1. **They chose to share** — their own visibility is `mutuals`.
+2. **You are mutuals** — you follow each other, or you have an active match.
+
+Neither alone is sufficient. Being on the same campus grants nothing but an
+anonymous +1 in the heatmap. `canSee()` fails closed at every branch, and
+ghost / `hiddenFrom` / blocks still override everything above.
+
+`mutualsOf(uid)` is the single source of truth: a two-way follow, or an
+`active` match (`mutualsIncludeMatches`, hot-editable). An unmatch revokes
+immediately.
+
+### Heatmap anonymity
+
+The heatmap deliberately counts people you have no relationship with, so it
+must never be reversible to an individual:
+
+- aggregated on a **coarser grid than pins** (`heatmapCellPrecision: 4`, ~1km,
+  versus the 250m pin cells)
+- cells below `heatmapMinCount` (3) are **dropped entirely, never rounded down**
+- output carries **only** `{lat, lng, count}` — no uid, name, photo or timestamp
+- the plotted point is the **centroid** of the bucket, not any one person's cell
+- only users who opted in (`heatmap` or `mutuals`) are counted at all
+- blocked users are excluded in both directions
+- people already shown as pins are **excluded** from the heatmap, so they are
+  not double-drawn
+
+### Why k-anonymity no longer gates pins
+
+k-anon was correct under the old campus-wide model: it stopped a stranger
+inferring an individual from a sparse cell. Under mutuals-only it is both
+unnecessary and harmful.
+
+- **Unnecessary** — the target explicitly chose to share with mutuals, and the
+  viewer is a confirmed mutual. Specific, reciprocal consent is a stronger
+  guarantee than anonymity among strangers.
+- **Harmful** — you rarely have 3 mutuals inside one 250m cell, so pins would
+  almost never render and the feature would look broken. Suppressing a friend
+  who deliberately shared with you is a privacy control the user did not ask
+  for.
+
+Anonymity now lives where the strangers are: the heatmap. Pins are governed by
+consent. This was caught by a test asserting a lone sharing mutual still
+renders.
+
+### Follower lists
+
+Leenk exposes a mutual **count** (`profile.mutualCount`) and no browsable
+follower/following list. On a dating app such a list is a targeting tool: it
+enumerates who someone knows and lets a stranger map their social circle
+before ever speaking to them. A count answers the only question that helps a
+user — "do we know the same people?" — without handing over the graph.
