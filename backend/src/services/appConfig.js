@@ -144,6 +144,18 @@ export const DEFAULTS = {
     studentHubSync: false,
   },
 
+  map: {
+    enabled: true,
+    visibilityDefault: 'off',      // opt-in only — nobody is mapped by accident
+    kAnonymity: 3,                 // a pin needs >=3 people in its cell
+    minPublishDelayMs: 600000,     // 10 min — defeats real-time interception
+    maxPublishDelayMs: 1800000,    // 30 min
+    pinTtlMs: 28800000,            // 8h
+    // OpenFreeMap: no API key, no account, no usage limits.
+    tileStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
+    tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/dark',
+  },
+
   payments: {
     enabled: false,                // flip on once keys are set
     provider: 'paystack',          // paystack | flutterwave

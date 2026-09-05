@@ -17,7 +17,7 @@
 import api, { USE_API, setToken, getToken } from './api'
 import {
   ME, CANDIDATES, MATCHES, POSTS, NOTIFICATIONS, THREADS, STORIES,
-  CAMPUSES, campusById, MOCK_GIFS, MOCK_SOUNDS,
+  CAMPUSES, campusById, MOCK_GIFS, MOCK_SOUNDS, MOCK_MAP,
 } from './mock'
 
 /* ------------------------------------------------------------------ *
@@ -362,6 +362,40 @@ export const media = {
       }
     }
     return api.mediaConfig()
+  },
+}
+
+/* ------------------------------------------------------------------ *
+ * Map
+ * ------------------------------------------------------------------ */
+
+export const campusMap = {
+  async config() {
+    if (!USE_API) {
+      return mock({
+        success: true, enabled: true, ghostIsFree: true, kAnonymity: 3,
+        tileStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
+        tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/dark',
+        settings: { visibility: 'off', ghost: false, hiddenFrom: [] },
+      })
+    }
+    return api.mapConfig()
+  },
+
+  async pins() {
+    if (!USE_API) return mock({ success: true, ...MOCK_MAP() }, 420)
+    return api.mapPins()
+  },
+
+  async settings(patch) {
+    if (!USE_API) return mock({ success: true, settings: patch })
+    return api.mapSettings(patch)
+  },
+
+  /** Fire-and-forget: never block the UI, never surface the outcome. */
+  view(uid, meta) {
+    if (!USE_API) return Promise.resolve({ success: true })
+    return api.mapView(uid, meta).catch(() => ({ success: false }))
   },
 }
 

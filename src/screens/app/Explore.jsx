@@ -58,7 +58,20 @@ export default function Explore() {
   return (
     <Page
       header={
-        <Header title="Explore" subtitle="Posts and people across campuses" />
+        <Header
+          title="Explore"
+          subtitle="Posts and people across campuses"
+          right={
+            <button
+              onClick={() => navigate('/app/map')}
+              aria-label="Campus map"
+              className="hit-expand flex items-center gap-1.5 px-3 h-9 rounded-full elev text-[12.5px] font-semibold"
+            >
+              <Icon name="compass" size={15} />
+              Map
+            </button>
+          }
+        />
       }
     >
       <OfflineBanner />

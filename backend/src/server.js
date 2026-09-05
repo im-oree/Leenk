@@ -20,6 +20,7 @@ import verificationRoutes from './routes/verification.js'
 import safetyRoutes from './routes/safety.js'
 import mediaRoutes from './routes/media.js'
 import paymentRoutes from './routes/payments.js'
+import mapRoutes from './routes/map.js'
 import storyRoutes from './routes/stories.js'
 import callRoutes from './routes/calls.js'
 import adminRoutes from './routes/admin.js'
@@ -95,6 +96,7 @@ app.use('/api/media', mediaRoutes)
 app.use('/api/stories', storyRoutes)
 app.use('/api/calls', callRoutes)
 app.use('/api/payments', paymentRoutes)
+app.use('/api/map', mapRoutes)
 app.use('/api/admin', adminRoutes)
 
 /* -------------------------------- fallbacks --------------------------------- */

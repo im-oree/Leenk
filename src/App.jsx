@@ -1,4 +1,5 @@
 import { AnimatePresence } from 'framer-motion'
+import { useState, useCallback } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 
 import { NavProvider } from './components/layout/NavContext'
@@ -6,6 +7,7 @@ import { NetworkProvider } from './lib/network'
 import { useBreakpoint } from './lib/breakpoint'
 import SideRail from './components/layout/SideRail'
 import ErrorBoundary from './components/ui/ErrorBoundary'
+import Splash from './components/brand/Splash'
 import { NavDirectionProvider } from './components/layout/NavDirection'
 import NavBar from './components/layout/NavBar'
 import ToastHost from './components/ui/Toast'
@@ -32,6 +34,7 @@ import {
   ReportFlow, Premium, EditProfile, CampusPage, StoryViewer, SharePage,
 } from './screens/app/misc'
 import Composer from './screens/app/Composer'
+import CampusMap from './screens/app/CampusMap'
 
 import Settings from './screens/settings/Settings'
 import {
@@ -113,6 +116,7 @@ function Shell() {
           <Route path="/app/notifications" element={<Gate><Notifications /></Gate>} />
           <Route path="/app/likes" element={<Gate><Likes /></Gate>} />
           <Route path="/app/compose" element={<Gate><Composer /></Gate>} />
+          <Route path="/app/map" element={<Gate><CampusMap /></Gate>} />
           <Route path="/app/trust" element={<Gate><TrustCenter /></Gate>} />
           <Route path="/app/safety" element={<Gate><SafetyCenter /></Gate>} />
           <Route path="/app/report" element={<Gate><ReportFlow /></Gate>} />
@@ -142,6 +146,18 @@ function Shell() {
 }
 
 export default function App() {
+  // Splash plays once per app launch (not per route change). Session-scoped so
+  // a hot reload or in-app navigation doesn't replay it.
+  const [splashDone, setSplashDone] = useState(() => {
+    if (typeof sessionStorage === 'undefined') return true
+    return sessionStorage.getItem('leenk.splashed') === '1'
+  })
+
+  const finishSplash = useCallback(() => {
+    sessionStorage.setItem('leenk.splashed', '1')
+    setSplashDone(true)
+  }, [])
+
   return (
     <NetworkProvider>
       <NavDirectionProvider>
@@ -152,6 +168,7 @@ export default function App() {
           </ErrorBoundary>
         </NavProvider>
       </NavDirectionProvider>
+      {!splashDone && <Splash onDone={finishSplash} />}
     </NetworkProvider>
   )
 }

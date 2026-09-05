@@ -229,3 +229,32 @@ export const MOCK_SOUNDS = (q = '') => {
       source: 'mock',
     }))
 }
+
+/* ------------------------------------------------------------------ *
+ * Map fixtures (mock mode)
+ * ------------------------------------------------------------------ */
+
+// Babcock University, Ilishan-Remo. Pins are already snapped to a 250m grid,
+// matching what the API returns — the client never sees a raw coordinate.
+const BABCOCK = { lat: 6.8917, lng: 3.7186 }
+
+export const MOCK_MAP = () => {
+  const staleness = ['Just now', 'Just now', 'Today', 'Today', 'Yesterday']
+  const pins = CANDIDATES.slice(0, 9).map((c, i) => {
+    // Deterministic spread over ~1km, snapped to a 250m grid like the server.
+    const dLat = (((i * 37) % 9) - 4) * (250 / 111320)
+    const dLng = (((i * 53) % 9) - 4) * (250 / (111320 * Math.cos(BABCOCK.lat * Math.PI / 180)))
+    const lat = BABCOCK.lat + dLat
+    const lng = BABCOCK.lng + dLng
+    return {
+      uid: c.uid,
+      name: c.name,
+      photo: c.photos[0],
+      verified: true,
+      lat, lng,
+      cellId: `${lat.toFixed(3)}:${lng.toFixed(3)}`,
+      lastSeen: staleness[i % staleness.length],
+    }
+  })
+  return { enabled: true, pins, onCampusCount: pins.length + 6, suppressed: 6, kAnonymity: 3 }
+}
