@@ -169,3 +169,62 @@ export const NOTIFICATIONS = [
 
 export const campusById = (id) => CAMPUSES.find((c) => c.id === id) || CAMPUSES[0]
 export const intentLabel = (id) => INTENTS.find((i) => i.id === id)?.label || 'Open'
+
+/* ------------------------------------------------------------------ *
+ * GIF + sound fixtures (mock mode)
+ * ------------------------------------------------------------------ */
+
+// Deterministic placeholder "GIFs" — still images, but they exercise the exact
+// { preview, full } contract the real provider returns, so the picker layout
+// and the send path are identical in both modes.
+const GIF_TAGS = [
+  'excited', 'laughing', 'crying', 'shocked', 'love', 'dancing',
+  'thumbs up', 'eye roll', 'facepalm', 'clapping', 'confused', 'wave',
+  'sleepy', 'nervous', 'celebrate', 'shy', 'angry', 'thinking',
+]
+
+export const MOCK_GIFS = (q = '') => {
+  const term = q.trim().toLowerCase()
+  const tags = term ? GIF_TAGS.filter((t) => t.includes(term) || term.includes(t)) : GIF_TAGS
+  const list = (tags.length ? tags : GIF_TAGS).slice(0, 18)
+  return list.map((tag, i) => {
+    // Vary aspect ratios so the masonry grid gets a realistic workout.
+    const w = 200 + ((i * 37) % 120)
+    const h = 150 + ((i * 53) % 130)
+    const seed = `gif-${tag.replace(/\s/g, '')}`
+    return {
+      id: seed,
+      description: tag,
+      preview: { url: `https://picsum.photos/seed/${seed}/${w}/${h}`, width: w, height: h },
+      full: { url: `https://picsum.photos/seed/${seed}/${w * 2}/${h * 2}`, width: w * 2, height: h * 2 },
+    }
+  })
+}
+
+const SOUND_SEEDS = [
+  ['Lagos Nights', 'Tunde A.', 142], ['Campus Walk', 'Mira K.', 98],
+  ['Slow Motion', 'Blue Room', 176], ['Afrobeat Sketch', 'Kola', 121],
+  ['Rooftop', 'Ada N.', 155], ['Study Loop', 'Quiet Hours', 204],
+  ['Late Bus', 'Femi O.', 133], ['Golden Hour', 'Sade B.', 167],
+  ['No Signal', 'Terminal 3', 112], ['Harmattan', 'Zainab I.', 189],
+  ['First Week', 'The Commons', 145], ['Night Market', 'Chidi E.', 158],
+]
+
+export const MOCK_SOUNDS = (q = '') => {
+  const term = q.trim().toLowerCase()
+  return SOUND_SEEDS
+    .filter(([t, a]) => !term || t.toLowerCase().includes(term) || a.toLowerCase().includes(term))
+    .map(([title, artist, duration], i) => ({
+      id: `snd-${i}`,
+      title,
+      artist,
+      duration,
+      // No real audio in mock mode; the picker handles a null url by disabling
+      // preview playback rather than throwing.
+      url: null,
+      thumbnail: `https://picsum.photos/seed/snd${i}/120/120`,
+      license: { code: 'cc0', version: '1.0', url: 'https://creativecommons.org/publicdomain/zero/1.0/' },
+      attribution: `${title} by ${artist} (CC0)`,
+      source: 'mock',
+    }))
+}

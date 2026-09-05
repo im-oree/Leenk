@@ -17,6 +17,8 @@ import { takePhoto, pickImages, pickVideo, ensurePermissions } from '../../lib/g
 import { feed as feedApi, stories as storiesApi, media as mediaApi } from '../../lib/data'
 import VideoEditor from '../../components/composer/VideoEditor'
 import CaptionOverlay from '../../components/composer/CaptionOverlay'
+import Sheet from '../../components/ui/Sheet'
+import SoundPicker from '../../components/media/SoundPicker'
 
 /**
  * Unified composer for posts and stories.
@@ -48,6 +50,8 @@ export default function Composer() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState(null)
   const [editingVideo, setEditingVideo] = useState(false)
+  const [sound, setSound] = useState(null)      // selected CC track + attribution
+  const [soundOpen, setSoundOpen] = useState(false)
 
   const captionRef = useRef(null)
 
@@ -94,6 +98,7 @@ export default function Composer() {
           thumb: m.thumb,
           kind: asset.isVideo ? 'video' : 'image',
           caption: caption || undefined,
+          sound: sound ? { id: sound.id, title: sound.title, artist: sound.artist, url: sound.url, attribution: sound.attribution } : undefined,
         })
         toast('Story added', 'success')
       } else {
@@ -102,6 +107,8 @@ export default function Composer() {
           thumb: m.thumb,
           caption,
           scope: audience,
+          // CC licensing: attribution travels with the post, not just the picker.
+          sound: sound ? { id: sound.id, title: sound.title, artist: sound.artist, url: sound.url, attribution: sound.attribution } : undefined,
         })
         // Keep the local store in sync so the feed updates instantly.
         dispatch({
@@ -111,7 +118,7 @@ export default function Composer() {
             author: { ...me, photos: me.photos },
             media: m.url,
             caption,
-            likes: 0, comments: 0, liked: false, at: Date.now(), scope: audience,
+            likes: 0, comments: 0, liked: false, at: Date.now(), scope: audience, sound,
           },
         })
         toast('Posted', 'success')
@@ -126,7 +133,7 @@ export default function Composer() {
       setBusy(false)
       setProgress(0)
     }
-  }, [asset, busy, mode, caption, audience, me, dispatch, navigate, toast])
+  }, [asset, busy, mode, caption, audience, sound, me, dispatch, navigate, toast])
 
   /* -------------------------------- render ------------------------------- */
 
@@ -271,6 +278,37 @@ export default function Composer() {
             </div>
           )}
 
+          {/* sound */}
+          {asset && (
+            <div>
+              <p className="text-[12px] font-medium muted uppercase tracking-wide mb-2">Sound</p>
+              {sound ? (
+                <div className="flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-brand-500/50 bg-brand-500/8">
+                  <Icon name="music" size={18} className="text-brand-500" />
+                  <span className="flex-1 min-w-0 text-left">
+                    <span className="block text-[14px] font-medium truncate">{sound.title}</span>
+                    <span className="block text-[12px] muted truncate">{sound.artist}</span>
+                  </span>
+                  <button
+                    onClick={() => { haptic('light'); setSound(null) }}
+                    className="hit-expand text-[12.5px] font-medium muted px-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { haptic('light'); setSoundOpen(true) }}
+                  className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl border hairline elev"
+                >
+                  <Icon name="music" size={18} className="muted" />
+                  <span className="flex-1 text-left text-[14px] font-medium">Add a sound</span>
+                  <Icon name="chevronRight" size={17} className="muted" />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* audience */}
           {asset && mode === 'post' && (
             <div>
@@ -309,6 +347,16 @@ export default function Composer() {
           </AnimatePresence>
         </div>
       </div>
+      <Sheet open={soundOpen} onClose={() => setSoundOpen(false)} title="Add a sound">
+        <div className="h-[62vh] min-h-0">
+          <SoundPicker
+            selectedId={sound?.id}
+            onSelect={(s) => { setSound(s); setSoundOpen(false) }}
+            onClose={() => setSoundOpen(false)}
+          />
+        </div>
+      </Sheet>
+
     </Page>
   )
 }

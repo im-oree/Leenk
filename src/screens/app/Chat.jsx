@@ -10,6 +10,7 @@ import Avatar from '../../components/ui/Avatar'
 import Icon from '../../components/ui/Icon'
 import IconButton from '../../components/ui/IconButton'
 import Sheet from '../../components/ui/Sheet'
+import GifPicker from '../../components/media/GifPicker'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
 import ListRow from '../../components/ui/ListRow'
@@ -29,6 +30,7 @@ export default function Chat() {
   const [confirmUnmatch, setConfirmUnmatch] = useState(false)
   const [typing, setTyping] = useState(false)
   const [attaching, setAttaching] = useState(false)
+  const [gifOpen, setGifOpen] = useState(false)
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -90,6 +92,22 @@ export default function Chat() {
       haptic('error')
     } finally {
       setAttaching(false)
+    }
+  }
+
+  /**
+   * Send a GIF. Unlike a photo there's nothing to upload — the provider URL is
+   * the asset — so this dispatches locally and posts the URL straight through.
+   */
+  const sendGif = async (gif) => {
+    setGifOpen(false)
+    try {
+      dispatch({ type: 'message/send', matchId, text: '', mediaUrl: gif.url, kind: 'gif' })
+      await chatApi.send(matchId, { mediaUrl: gif.url, kind: 'gif', meta: { description: gif.description } })
+      haptic('success')
+    } catch (err) {
+      toast(err.message || "Couldn't send that GIF", 'error')
+      haptic('error')
     }
   }
 
@@ -203,6 +221,7 @@ export default function Chat() {
       <div className="glass border-t hairline px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
         <div className="max-w-[var(--content-max)] mx-auto flex items-end gap-2">
           <IconButton icon="image" label="Send photo" disabled={attaching} onClick={() => sendPhoto('gallery')} />
+          <IconButton icon="sticker" label="Send a GIF" onClick={() => setGifOpen(true)} />
           <div className="flex-1 flex items-end rounded-3xl elev border hairline px-4 py-1">
             <textarea
               rows={1}
@@ -226,6 +245,12 @@ export default function Chat() {
           </motion.button>
         </div>
       </div>
+
+      <Sheet open={gifOpen} onClose={() => setGifOpen(false)} title="Send a GIF">
+        <div className="h-[62vh] min-h-0">
+          <GifPicker onSelect={sendGif} onClose={() => setGifOpen(false)} />
+        </div>
+      </Sheet>
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title={match.user.name}>
         <div className="-mx-1">

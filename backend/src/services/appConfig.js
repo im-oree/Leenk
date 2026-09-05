@@ -58,6 +58,7 @@ export const DEFAULTS = {
   },
 
   media: {
+    soundProvider: 'openverse',    // openverse | none — no API key required
     provider: 'imgbb',
     // Round-robin pool. Add keys here from the admin panel; picked up in <60s.
     imgbbKeys: [],
@@ -92,7 +93,11 @@ export const DEFAULTS = {
     deleteForEveryoneSeconds: 3600,
     maxMessageLength: 2000,
     imagesEnabled: true,
-    gifProvider: 'tenor',          // tenor | giphy | none
+    // Tenor was decommissioned by Google on 2026-06-30 (new keys blocked
+    // 2026-01-13) — it is not a valid option any more. Klipy is the
+    // free-forever successor most platforms migrated to.
+    gifProvider: 'klipy',          // klipy | giphy | none
+    gifApiKeys: {},                // { klipy: '...' } — set from admin panel
     stickersEnabled: true,
     voiceNotesEnabled: true,
     maxVoiceNoteSeconds: 120,

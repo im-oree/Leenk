@@ -8,34 +8,56 @@ import Chip from '../../components/ui/Chip'
 import Avatar from '../../components/ui/Avatar'
 import Icon from '../../components/ui/Icon'
 import EmptyState from '../../components/ui/EmptyState'
+import OfflineBanner from '../../components/ui/OfflineBanner'
+import SmartImage from '../../components/ui/SmartImage'
 import { useStore } from '../../lib/store'
-import { CAMPUSES, CANDIDATES, campusById } from '../../lib/mock'
+import { feed as feedApi, discovery, reference } from '../../lib/data'
+import { useAsync } from '../../lib/useAsync'
+import { campusById } from '../../lib/mock'
 import { listStagger, listItem } from '../../lib/motion'
 
 const SCOPES = [{ id: 'all', label: 'All' }, { id: 'campus', label: 'My campus' }, { id: 'nearby', label: 'Nearby' }, { id: 'people', label: 'People' }]
 
 export default function Explore() {
   const navigate = useNavigate()
-  const { posts, me } = useStore()
+  const { me } = useStore()
   const [q, setQ] = useState('')
   const [scope, setScope] = useState('all')
 
+  // Explore reads the ranked 'explore' feed from the data layer rather than
+  // the local store, so it reflects server-side ranking (campus affinity,
+  // Wilson score) instead of whatever happens to be cached client-side.
+  const { data: feedData, loading: postsLoading } =
+    useAsync(() => feedApi.list('explore'), [])
+  const { data: peopleData, loading: peopleLoading } =
+    useAsync(() => discovery.stack(40), [])
+
+  const posts = feedData?.posts || []
+  const candidates = peopleData?.cards || []
+  const CAMPUSES = reference.campuses
+
   const filtered = useMemo(() => {
     let list = posts
-    if (scope === 'campus') list = list.filter((p) => p.author.campusId === me.campusId)
-    if (scope === 'nearby') list = list.filter((p) => p.author.campusId !== me.campusId)
-    if (q) list = list.filter((p) => p.caption.toLowerCase().includes(q.toLowerCase()) || p.author.name.toLowerCase().includes(q.toLowerCase()))
+    if (scope === 'campus') list = list.filter((p) => p.author?.campusId === me.campusId)
+    if (scope === 'nearby') list = list.filter((p) => p.author?.campusId !== me.campusId)
+    if (q) {
+      const t = q.toLowerCase()
+      list = list.filter(
+        (p) => (p.caption || '').toLowerCase().includes(t) || (p.author?.name || '').toLowerCase().includes(t),
+      )
+    }
     return list
   }, [posts, scope, q, me.campusId])
 
-  const people = useMemo(
-    () => CANDIDATES.filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase())),
-    [q],
-  )
+  const people = useMemo(() => {
+    const t = q.trim().toLowerCase()
+    return candidates.filter((c) => !t || (c.name || '').toLowerCase().includes(t))
+  }, [candidates, q])
 
   return (
     <Page>
       <Header title="Explore" subtitle="Posts and people across campuses" />
+      <OfflineBanner />
 
       <div className="max-w-[var(--content-max)] w-full mx-auto">
         <div className="px-4 pt-3">
@@ -84,15 +106,21 @@ export default function Explore() {
                 onClick={() => navigate(`/app/user/${p.uid}`)}
                 className="w-full flex items-center gap-3.5 p-2.5 rounded-2xl active:bg-[color:var(--app-elev)] text-left"
               >
-                <Avatar src={p.photos[0]} name={p.name} size="md" verified />
+                <Avatar src={p.photos?.[0]} name={p.name} size="md" verified={p.verified !== false} />
                 <span className="flex-1 min-w-0">
                   <span className="block font-semibold text-[15px] truncate">{p.name}, {p.age}</span>
-                  <span className="block text-[12.5px] muted truncate">{campusById(p.campusId).short} · {p.department}</span>
+                  <span className="block text-[12.5px] muted truncate">{campusById(p.campusId)?.short || 'Campus'} · {p.department}</span>
                 </span>
                 <Icon name="chevronRight" size={17} className="muted" />
               </motion.button>
             ))}
           </motion.div>
+        ) : postsLoading ? (
+          <div className="grid grid-cols-3 gap-[3px] px-[3px] pb-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="aspect-square bg-[color:var(--app-elev)] animate-pulse" />
+            ))}
+          </div>
         ) : filtered.length ? (
           <div className="grid grid-cols-3 gap-[3px] px-[3px] pb-4">
             {filtered.map((p, i) => (
@@ -105,7 +133,7 @@ export default function Explore() {
                 onClick={() => navigate(`/app/post/${p.id}`)}
                 className={`relative overflow-hidden bg-[color:var(--app-elev)] ${i % 7 === 0 ? 'col-span-2 row-span-2 aspect-square' : 'aspect-square'}`}
               >
-                <img src={p.media} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                <SmartImage src={p.media || p.mediaUrl} alt="" className="w-full h-full object-cover" />
                 <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-white text-[11px] font-medium drop-shadow">
                   <Icon name="heart" size={12} filled />
                   {p.likes}

@@ -5,6 +5,16 @@ import { requireAuth } from '../middleware/auth.js'
 import { uploadImage, mediaStatus } from '../services/media.js'
 import { moderationStatus } from '../services/moderation.js'
 import { getConfig } from '../services/appConfig.js'
+import { searchGifs, gifStatus } from '../services/gifs.js'
+import { searchSounds, soundStatus } from '../services/sounds.js'
+
+/** Upstream provider failures we swallow into an empty result. */
+const isUpstreamFailure = (err) =>
+  Boolean(err?.status) ||
+  err?.name === 'AbortError' ||
+  err?.name === 'TypeError' ||        // undici 'fetch failed' (DNS/socket)
+  ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT'].includes(err?.code) ||
+  ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN'].includes(err?.cause?.code)
 
 const router = Router()
 router.use(requireAuth)
@@ -112,9 +122,63 @@ router.get('/config', (req, res) => {
     success: true,
     media: mediaStatus(),
     moderation: moderationStatus(),
+    gifs: gifStatus(),
+    sounds: soundStatus(),
     gifProvider: getConfig('messaging.gifProvider'),
     features: getConfig('features'),
   })
+})
+
+/* ---------------------------- GET /api/media/gifs ----------------------- */
+/** Proxied so the provider key never reaches the client and can be rotated
+ *  from the admin panel without shipping an app update. */
+const browseLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.uid || ipKeyGenerator(req.ip),
+  message: { error: 'Slow down a moment.', code: 'BROWSE_RATE_LIMIT' },
+})
+
+router.get('/gifs', browseLimiter, async (req, res, next) => {
+  try {
+    if (!getConfig('features.gifs')) {
+      return res.status(403).json({ error: 'GIFs are turned off.', code: 'FEATURE_OFF' })
+    }
+    const q = String(req.query.q || '').slice(0, 80)
+    const limit = Number(req.query.limit) || 24
+    const offset = Number(req.query.offset) || 0
+    const out = await searchGifs({ q, limit, offset })
+    res.json({ success: true, ...out })
+  } catch (err) {
+    // A dead upstream must not break the composer — return an honest empty
+    // state the client can render, not a 500.
+    // Any upstream failure — bad status, timeout, DNS/socket error — must
+    // degrade to an empty grid, never a 500 that breaks the composer.
+    if (isUpstreamFailure(err)) {
+      return res.json({ success: true, items: [], remote: false, reason: 'PROVIDER_UNAVAILABLE' })
+    }
+    next(err)
+  }
+})
+
+/* --------------------------- GET /api/media/sounds ---------------------- */
+router.get('/sounds', browseLimiter, async (req, res, next) => {
+  try {
+    const q = String(req.query.q || '').slice(0, 80)
+    const limit = Number(req.query.limit) || 20
+    const page = Number(req.query.page) || 1
+    const out = await searchSounds({ q, limit, page })
+    res.json({ success: true, ...out })
+  } catch (err) {
+    // Any upstream failure — bad status, timeout, DNS/socket error — must
+    // degrade to an empty grid, never a 500 that breaks the composer.
+    if (isUpstreamFailure(err)) {
+      return res.json({ success: true, items: [], remote: false, reason: 'PROVIDER_UNAVAILABLE' })
+    }
+    next(err)
+  }
 })
 
 export default router

@@ -24,6 +24,7 @@ const screens = [
   ['Discover', '/src/screens/app/Discover.jsx', '/app/discover'],
   ['Matches',  '/src/screens/app/Matches.jsx',  '/app/matches'],
   ['Profile',  '/src/screens/app/Profile.jsx',  '/app/profile'],
+  ['Explore',  '/src/screens/app/Explore.jsx',  '/app/explore'],
 ]
 
 /**
@@ -66,6 +67,12 @@ for (const [name, path, route] of screens) {
       // brand-fill ancestors before an img means someone re-wrapped it.
       Matches: [['ring markup', /rounded-full/]],
       Profile: [['own ring', /rounded-full/]],
+      Explore: [
+        ['search field', /placeholder="Search people/],
+        ['scope chips', /My campus/],
+        // Explore must render from the data layer, not crash on empty state.
+        ['grid or skeleton', /aspect-square/],
+      ],
     }[name] || []
     // A check is a regex (must match) or a predicate (must return true).
     // Previously a '✗' only printed — it never failed the run. It does now.

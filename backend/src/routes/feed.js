@@ -23,7 +23,11 @@ function rankScore(post, { followingSet, myCampus }) {
 /* -------------------------------- GET /api/feed ------------------------------- */
 router.get('/', async (req, res, next) => {
   try {
-    const mode = req.query.mode === 'following' ? 'following' : 'foryou'
+    // 'explore' is a discovery surface: unlike 'following' it deliberately
+    // does NOT restrict to the follow graph, and unlike 'foryou' it favours
+    // reach beyond the people you already know.
+    const requested = String(req.query.mode || '')
+    const mode = ['following', 'explore'].includes(requested) ? requested : 'foryou'
     const limit = Math.min(Number(req.query.limit) || 20, 50)
 
     const followSnap = await db().collection('follows').where('followerUid', '==', req.user.uid).get()

@@ -13,6 +13,9 @@ const targets = [
   '/src/screens/app/Composer.jsx', '/src/screens/app/Feed.jsx',
   '/src/screens/app/Discover.jsx', '/src/screens/app/Chat.jsx',
   '/src/screens/app/Matches.jsx', '/src/screens/app/Profile.jsx',
+  '/src/screens/app/Explore.jsx',
+  '/src/components/media/GifPicker.jsx', '/src/components/media/SoundPicker.jsx',
+  '/src/components/layout/SideRail.jsx', '/src/lib/breakpoint.js',
   '/src/App.jsx',
 ]
 let fail = 0

@@ -17,7 +17,7 @@
 import api, { USE_API, setToken, getToken } from './api'
 import {
   ME, CANDIDATES, MATCHES, POSTS, NOTIFICATIONS, THREADS, STORIES,
-  CAMPUSES, campusById,
+  CAMPUSES, campusById, MOCK_GIFS, MOCK_SOUNDS,
 } from './mock'
 
 /* ------------------------------------------------------------------ *
@@ -316,6 +316,36 @@ export const media = {
       return { success: true, uploaded: files.map((f) => ({ url: f.dataUrl, thumb: f.dataUrl })) }
     }
     return api.uploadImages(files.map((f) => f.dataUrl || f.base64), surface)
+  },
+
+  /**
+   * GIF search. Returns { items, remote, reason } — `remote:false` means the
+   * provider is unavailable/unconfigured and the UI should say so plainly
+   * rather than render an empty grid that looks broken.
+   */
+  async gifs(q = '', offset = 0) {
+    if (!USE_API) {
+      await delay(320)
+      return { success: true, items: MOCK_GIFS(q), remote: true, provider: 'mock' }
+    }
+    try {
+      return await api.searchGifs(q, offset)
+    } catch {
+      return { success: true, items: [], remote: false, reason: 'PROVIDER_UNAVAILABLE' }
+    }
+  },
+
+  /** Sound library for the composer. Same degradation contract as gifs(). */
+  async sounds(q = '', page = 1) {
+    if (!USE_API) {
+      await delay(320)
+      return { success: true, items: MOCK_SOUNDS(q), remote: true, provider: 'mock' }
+    }
+    try {
+      return await api.searchSounds(q, page)
+    } catch {
+      return { success: true, items: [], remote: false, reason: 'PROVIDER_UNAVAILABLE' }
+    }
   },
 
   async config() {
