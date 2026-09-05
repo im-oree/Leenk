@@ -258,3 +258,28 @@ export const MOCK_MAP = () => {
   })
   return { enabled: true, pins, onCampusCount: pins.length + 6, suppressed: 6, kAnonymity: 3 }
 }
+
+/* ------------------------------------------------------------------ *
+ * StudentHub federated posts (mock mode)
+ * ------------------------------------------------------------------ *
+ * Read-only inline federation. Mirrors the shape produced by
+ * backend/src/services/federation.js normalizePost().
+ */
+export const MOCK_SH_POSTS = [
+  {
+    id: 'sh_1', source: 'studenthub', readOnly: true, kind: 'announcement',
+    caption: 'Second semester examination timetable is now available on the student portal. Check your course codes carefully — three papers moved this week.',
+    mediaUrl: null, mediaType: 'none', campusId: 'babcock',
+    createdAtMs: Date.now() - 2 * 3600_000,
+    likeCount: 214, commentCount: 38, liked: false, sourceUrl: null,
+    author: { uid: 'sh_registrar', studentHubUid: 'registrar', name: 'Babcock Registrar', photo: null, campusId: 'babcock', verified: true, official: true },
+  },
+  {
+    id: 'sh_2', source: 'studenthub', readOnly: true, kind: 'event',
+    caption: 'Career fair this Friday, 10am at the Multipurpose Hall. 20+ companies recruiting for internships and graduate roles.',
+    mediaUrl: null, mediaType: 'none', campusId: 'babcock',
+    createdAtMs: Date.now() - 9 * 3600_000,
+    likeCount: 96, commentCount: 12, liked: false, sourceUrl: null,
+    author: { uid: 'sh_careers', studentHubUid: 'careers', name: 'Careers Office', photo: null, campusId: 'babcock', verified: true, official: true },
+  },
+]

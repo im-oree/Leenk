@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import Page from '../../components/layout/Page'
@@ -7,6 +7,8 @@ import IconButton from '../../components/ui/IconButton'
 import SegmentedControl from '../../components/ui/SegmentedControl'
 import StoryRail from '../../components/feed/StoryRail'
 import PostCard from '../../components/feed/PostCard'
+import StudentHubPost from '../../components/feed/StudentHubPost'
+import { MOCK_SH_POSTS } from '../../lib/mock'
 import Sheet from '../../components/ui/Sheet'
 import ListRow from '../../components/ui/ListRow'
 import EmptyState from '../../components/ui/EmptyState'
@@ -39,7 +41,21 @@ export default function Feed() {
     lastY.current = y
   }
 
-  const list = tab === 'following' ? posts.filter((_, i) => i % 2 === 0) : posts
+  // StudentHub posts federate inline everywhere except 'following', which is
+  // strictly the user's own follow graph. Interleaved, never leading, and
+  // capped — mirroring mergeIntoFeed() on the backend.
+  const list = useMemo(() => {
+    const base = tab === 'following' ? posts.filter((_, i) => i % 2 === 0) : posts
+    if (tab === 'following' || !base.length) return base
+    const queue = [...MOCK_SH_POSTS]
+    const out = []
+    let qi = 0
+    base.forEach((p, i) => {
+      out.push(p)
+      if ((i + 1) % 5 === 0 && qi < queue.length) out.push(queue[qi++])
+    })
+    return out
+  }, [tab, posts])
 
   return (
     <Page
@@ -90,6 +106,11 @@ export default function Feed() {
             >
               {list.length ? (
                 list.map((p) => (
+                  // StudentHub posts federate in read-only, so they get a
+                  // distinct non-interactive card rather than a PostCard.
+                  p.source === 'studenthub' ? (
+                    <StudentHubPost key={p.id} post={p} />
+                  ) : (
                   <PostCard
                     key={p.id}
                     post={p}
@@ -98,6 +119,7 @@ export default function Feed() {
                     onOpenAuthor={(a) => navigate(`/app/user/${a.uid}`)}
                     onMore={setMoreFor}
                   />
+                  )
                 ))
               ) : (
                 <EmptyState

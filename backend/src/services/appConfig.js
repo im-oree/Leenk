@@ -144,6 +144,16 @@ export const DEFAULTS = {
     studentHubSync: false,
   },
 
+  federation: {
+    // StudentHub posts inline in the Leenk feed. Read-only, one direction.
+    enabled: true,
+    everyN: 5,              // one federated post per 5 Leenk posts
+    maxShare: 0.25,         // hard ceiling on feed occupancy
+    cacheTtlMs: 120000,
+    timeoutMs: 2500,        // feed must not wait on a slow StudentHub
+    breakerCooldownMs: 60000,
+  },
+
   map: {
     enabled: true,
     visibilityDefault: 'off',      // opt-in only — nobody is mapped by accident

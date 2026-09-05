@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db, FieldValue } from '../lib/firebase.js'
 import { requireAuth, requireVerified } from '../middleware/auth.js'
+import { fetchCampusPosts, mergeIntoFeed, filterForViewer } from '../services/federation.js'
+import { getConfig } from '../services/appConfig.js'
 
 const router = Router()
 router.use(requireAuth, requireVerified)
@@ -71,7 +73,21 @@ router.get('/', async (req, res, next) => {
       }
     }))
 
-    res.json({ success: true, mode, posts: hydrated })
+    // StudentHub posts render inline (read-only). 'following' is the user's
+    // own follow graph, so institutional content would be a non-sequitur there.
+    let merged = hydrated
+    let federated = 0
+    if (mode !== 'following') {
+      const fed = (await getConfig()).federation || {}
+      const shPosts = await filterForViewer(
+        await fetchCampusPosts(req.profile.campusId, { limit: 20 }),
+        req.user.uid,
+      )
+      merged = mergeIntoFeed(hydrated, shPosts, { everyN: fed.everyN, maxShare: fed.maxShare })
+      federated = merged.length - hydrated.length
+    }
+
+    res.json({ success: true, mode, posts: merged, federated })
   } catch (err) { next(err) }
 })
 
