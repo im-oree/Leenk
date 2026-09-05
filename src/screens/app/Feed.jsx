@@ -54,7 +54,7 @@ export default function Feed() {
       />
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(var(--nav-h)+env(safe-area-inset-bottom)+14px)]" onScroll={onScroll}>
-        <div className="max-w-[520px] mx-auto">
+        <div className="max-w-[var(--content-max)] mx-auto">
           <div className="px-4 pt-3">
             <SegmentedControl
               size="sm"

@@ -26,6 +26,24 @@ const screens = [
   ['Profile',  '/src/screens/app/Profile.jsx',  '/app/profile'],
 ]
 
+/**
+ * StoryRing renders its own ring: `p-[2.5px] brand-fill` > app-bg gap > <img>.
+ * If a caller wraps it in ANOTHER ring you get two ring spans with no <img>
+ * between them — a visible double ring (shipped bug in Matches). Counting
+ * nested rings structurally beats a regex, because arbitrary elements
+ * (buttons, spans) can sit between the two wrappers.
+ */
+function noDoubleRing(html) {
+  const RING = /p-\[2\.5px\] brand-fill/g   // ring only; excludes badge pills
+  const rings = [...html.matchAll(RING)].map((m) => m.index)
+  return rings.every((at, i) => {
+    const next = rings[i + 1]
+    if (next === undefined) return true
+    // Legit sibling rings always have the first ring's <img> between them.
+    return html.slice(at, next).includes('<img')
+  })
+}
+
 let fail = 0
 for (const [name, path, route] of screens) {
   try {
@@ -38,15 +56,29 @@ for (const [name, path, route] of screens) {
               React.createElement(NavDirectionProvider, null,
                 React.createElement(NavProvider, null, React.createElement(Comp))))))))
     const html = renderToString(tree)
-    const checks = {
+    let checks = {
       Feed: [['story ring (brand)', /brand-fill/], ['rail avatars', /rounded-full/], ['segmented', /For you/]],
       Composer: [['source buttons', /Camera/], ['gallery', /Gallery/], ['video', /Video/], ['mode toggle', /post/i]],
       Discover: [['swipe card', /rounded-\[30px\]/], ['controls', /aria-label/]],
+      // Regression guard: StoryRing draws its own ring. If a caller wraps it in
+      // another brand-fill span you get a visible double ring (shipped bug).
+      // A correct ring is exactly: brand-fill > app-bg gap > <img>. Two
+      // brand-fill ancestors before an img means someone re-wrapped it.
       Matches: [['ring markup', /rounded-full/]],
       Profile: [['own ring', /rounded-full/]],
     }[name] || []
-    const results = checks.map(([lbl, re]) => `${re.test(html) ? '✓' : '✗'} ${lbl}`).join('  ')
-    console.log(`  ok   ${name.padEnd(9)} ${String(html.length).padStart(6)} chars   ${results}`)
+    // A check is a regex (must match) or a predicate (must return true).
+    // Previously a '✗' only printed — it never failed the run. It does now.
+    let bad = 0
+    // Double rings can appear on any screen that uses StoryRing.
+    checks = [...checks, ['no double ring', noDoubleRing]]
+    const results = checks.map(([lbl, check]) => {
+      const pass = typeof check === 'function' ? check(html) : check.test(html)
+      if (!pass) bad++
+      return `${pass ? '✓' : '✗'} ${lbl}`
+    }).join('  ')
+    if (bad) fail++
+    console.log(`  ${bad ? 'FAIL' : 'ok  '} ${name.padEnd(9)} ${String(html.length).padStart(6)} chars   ${results}`)
   } catch (e) {
     fail++
     console.log(`  FAIL ${name}\n       ${String(e.message).split('\n')[0]}`)

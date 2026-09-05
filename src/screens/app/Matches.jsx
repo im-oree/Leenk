@@ -27,9 +27,9 @@ export default function Matches() {
 
   return (
     <Page>
-      <Header title="Chats" subtitle={`${matches.length} matches`} right={<Badge tone="brand" icon="heart" size="sm">{fresh.length} new</Badge>} />
+      <Header title="Chats" subtitle={`${matches.length} matches`} right={fresh.length > 0 ? <Badge tone="brand" icon="heart" size="sm">{fresh.length} new</Badge> : null} />
 
-      <div className="max-w-[560px] w-full mx-auto">
+      <div className="max-w-[var(--content-max)] w-full mx-auto">
         <div className="px-4 pt-3">
           <Input icon="search" placeholder="Search matches" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
@@ -48,12 +48,9 @@ export default function Matches() {
                   onClick={() => navigate(`/app/chat/${m.id}`)}
                   className="flex flex-col items-center gap-1.5 shrink-0 w-[70px]"
                 >
-                  <span className="rounded-full p-[2.5px] brand-fill">
-                    <span className="block rounded-full p-[2px] bg-[color:var(--app-bg)]">
-                      <StoryRing src={m.user.photos[0]} name={m.user.name} size={56}
-                        hasStory={!!m.user.hasActiveStory} hasUnseen={!!m.user.hasUnseenStory} />
-                    </span>
-                  </span>
+                  {/* StoryRing draws its own ring — never wrap it in another one */}
+                  <StoryRing src={m.user.photos[0]} name={m.user.name} size={56}
+                    hasStory={!!m.user.hasActiveStory} hasUnseen={!!m.user.hasUnseenStory} />
                   <span className="text-[11.5px] font-medium truncate w-full text-center">{m.user.name}</span>
                 </motion.button>
               ))}

@@ -171,7 +171,7 @@ export default function Composer() {
       </AnimatePresence>
 
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="max-w-[560px] w-full mx-auto px-5 pt-4 pb-12 space-y-5">
+        <div className="max-w-[var(--content-max)] w-full mx-auto px-5 pt-4 pb-12 space-y-5">
 
           {/* post / story toggle */}
           <div className="flex gap-1.5 p-1 rounded-2xl elev border hairline">

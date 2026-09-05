@@ -88,7 +88,7 @@ export default function UserProfile() {
           </div>
         </div>
 
-        <div className="max-w-[560px] mx-auto px-5 pt-5 space-y-5">
+        <div className="max-w-[var(--content-max)] mx-auto px-5 pt-5 space-y-5">
           <div className="flex flex-wrap gap-2">
             <Badge icon="heart" size="sm">{intentLabel(user.intent)}</Badge>
             <Badge icon="cap" size="sm">{user.department}</Badge>
@@ -129,7 +129,7 @@ export default function UserProfile() {
       </div>
 
       <div className="glass border-t hairline px-5 pt-3 pb-[max(env(safe-area-inset-bottom),14px)]">
-        <div className="max-w-[560px] mx-auto flex gap-3 justify-center">
+        <div className="max-w-[var(--content-max)] mx-auto flex gap-3 justify-center">
           <Button variant="secondary" size="lg" icon="x" className="!w-14 !px-0 !text-rose-500" onClick={() => navigate(-1)} aria-label="Pass" />
           <Button variant="secondary" size="lg" icon="star" className="!w-14 !px-0 !text-sky-500" onClick={() => toast('Super liked', 'brand')} aria-label="Super like" />
           <Button size="lg" icon="heart" full onClick={() => { toast(`You liked ${user.name}`, 'brand'); navigate(-1) }}>Like</Button>

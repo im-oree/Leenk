@@ -13,6 +13,34 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --nav-h: 68px;
+  --rail-w: 0px;
+  --content-max: 560px;
+}
+
+/* Tablet portrait and up: swap the bottom pill for a left rail. */
+@media (min-width: 768px) {
+  :root { --rail-w: 84px; --nav-h: 0px; --content-max: 620px; }
+}
+@media (min-width: 1180px) {
+  :root { --rail-w: 232px; --content-max: 680px; }
+}
+
+/* Fingers, not cursors.
+   Forcing min-height on every button would wreck compact icon buttons, so
+   small controls get an INVISIBLE expanded hit area instead — the visual size
+   is unchanged, the tappable box reaches 44px. */
+@media (pointer: coarse) {
+  .hit-expand { position: relative; }
+  .hit-expand::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 html.dark {

@@ -38,7 +38,7 @@ export default function Profile() {
         }
       />
 
-      <div className="max-w-[560px] w-full mx-auto">
+      <div className="max-w-[var(--content-max)] w-full mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 
 import { NavProvider } from './components/layout/NavContext'
 import { NetworkProvider } from './lib/network'
+import { useBreakpoint } from './lib/breakpoint'
+import SideRail from './components/layout/SideRail'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import { NavDirectionProvider } from './components/layout/NavDirection'
 import NavBar from './components/layout/NavBar'
@@ -70,6 +72,11 @@ function Onboarding() {
 function Shell() {
   const location = useLocation()
   const { onboarded, verificationStatus } = useStore()
+  const { isCompact } = useBreakpoint()
+
+  // Only the signed-in app shell gets the rail; onboarding/verify stay full-bleed.
+  const inApp = location.pathname.startsWith('/app')
+  const railed = !isCompact && inApp
 
   const home = !onboarded
     ? '/onboarding'
@@ -79,6 +86,10 @@ function Shell() {
 
   return (
     <>
+      <div
+        className="transition-[padding] duration-300"
+        style={railed ? { paddingLeft: 'var(--rail-w)' } : undefined}
+      >
       <AnimatePresence mode="popLayout" initial={false}>
         <Routes location={location} key={location.pathname.split('/').slice(0, 3).join('/')}>
           <Route path="/" element={<Navigate to={home} replace />} />
@@ -121,8 +132,10 @@ function Shell() {
           <Route path="*" element={<Navigate to={home} replace />} />
         </Routes>
       </AnimatePresence>
+      </div>
 
-      <NavBar />
+      {/* Phone gets the bottom pill; tablet and up get a left rail. */}
+      {isCompact ? <NavBar /> : inApp ? <SideRail /> : null}
       <ToastHost />
     </>
   )

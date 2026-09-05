@@ -31,7 +31,7 @@ const IconButton = forwardRef(function IconButton(
       transition={{ type: 'spring', stiffness: 620, damping: 30 }}
       onClick={(e) => { haptic('light'); onClick?.(e) }}
       style={{ width: px, height: px }}
-      className={`relative inline-flex items-center justify-center rounded-full transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${tones[tone]} ${className}`}
+      className={`hit-expand relative inline-flex items-center justify-center rounded-full transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 ${tones[tone]} ${className}`}
       {...rest}
     >
       <Icon name={icon} size={size === 'sm' ? 17 : size === 'lg' ? 22 : 20} />

@@ -37,7 +37,7 @@ export default function Explore() {
     <Page>
       <Header title="Explore" subtitle="Posts and people across campuses" />
 
-      <div className="max-w-[560px] w-full mx-auto">
+      <div className="max-w-[var(--content-max)] w-full mx-auto">
         <div className="px-4 pt-3">
           <Input icon="search" placeholder="Search people, campuses, posts" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>

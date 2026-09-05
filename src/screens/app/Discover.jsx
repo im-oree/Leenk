@@ -61,7 +61,7 @@ export default function Discover() {
         }
       />
 
-      <div className="flex-1 flex flex-col px-4 pt-3 max-w-[520px] w-full mx-auto">
+      <div className="flex-1 flex flex-col px-4 pt-3 max-w-[var(--content-max)] w-full mx-auto">
         <div className="flex items-center justify-between mb-3 px-1">
           <Badge tone="neutral" icon="fire" size="sm">{swipesLeft} swipes left today</Badge>
           <button onClick={() => navigate('/app/likes')} className="text-[12.5px] font-medium text-brand-500">

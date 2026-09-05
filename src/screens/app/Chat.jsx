@@ -114,7 +114,7 @@ export default function Chat() {
       />
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-4">
-        <div className="max-w-[560px] mx-auto">
+        <div className="max-w-[var(--content-max)] mx-auto">
           <div className="flex flex-col items-center text-center py-6 mb-2">
             <Avatar src={match.user.photos[0]} name={match.user.name} size="xl" verified />
             <p className="font-display text-[19px] font-semibold mt-3">{match.user.name}, {match.user.age}</p>
@@ -201,7 +201,7 @@ export default function Chat() {
       </div>
 
       <div className="glass border-t hairline px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
-        <div className="max-w-[560px] mx-auto flex items-end gap-2">
+        <div className="max-w-[var(--content-max)] mx-auto flex items-end gap-2">
           <IconButton icon="image" label="Send photo" disabled={attaching} onClick={() => sendPhoto('gallery')} />
           <div className="flex-1 flex items-end rounded-3xl elev border hairline px-4 py-1">
             <textarea
