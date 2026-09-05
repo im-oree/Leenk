@@ -2,6 +2,8 @@ import { AnimatePresence } from 'framer-motion'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 
 import { NavProvider } from './components/layout/NavContext'
+import { NetworkProvider } from './lib/network'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 import { NavDirectionProvider } from './components/layout/NavDirection'
 import NavBar from './components/layout/NavBar'
 import ToastHost from './components/ui/Toast'
@@ -127,10 +129,15 @@ function Shell() {
 
 export default function App() {
   return (
-    <NavDirectionProvider>
-      <NavProvider>
-        <Shell />
-      </NavProvider>
-    </NavDirectionProvider>
+    <NetworkProvider>
+      <NavDirectionProvider>
+        <NavProvider>
+          {/* Scoped per-shell so one bad screen can't take the whole app down */}
+          <ErrorBoundary>
+            <Shell />
+          </ErrorBoundary>
+        </NavProvider>
+      </NavDirectionProvider>
+    </NetworkProvider>
   )
 }

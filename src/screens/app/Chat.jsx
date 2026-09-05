@@ -74,7 +74,7 @@ export default function Chat() {
         subtitle={`${campusById(match.user.campusId).short} · Active recently`}
         right={
           <>
-            <IconButton icon="phone" label="Call" onClick={() => toast('Calls coming soon', 'brand')} />
+            <IconButton icon="phone" label="Voice call" onClick={() => { haptic("light"); navigate(`/app/call/${matchId}?kind=audio`) }} />
             <IconButton icon="dots" label="Options" onClick={() => setMenuOpen(true)} />
           </>
         }

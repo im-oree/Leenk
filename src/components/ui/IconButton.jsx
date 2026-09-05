@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { forwardRef } from 'react'
 import Icon from './Icon'
 import { haptic } from '../../lib/haptics'
+import Tooltip from './Tooltip'
 
 const tones = {
   default: 'surface text-[color:var(--app-text)]',
@@ -14,11 +15,15 @@ const tones = {
 const sizes = { sm: 32, md: 40, lg: 46 }
 
 const IconButton = forwardRef(function IconButton(
-  { icon, tone = 'ghost', size = 'md', label, className = '', onClick, badge, ...rest },
+  { icon, tone = 'ghost', size = 'md', label, tooltip, className = '', onClick, badge, ...rest },
   ref,
 ) {
   const px = sizes[size]
-  return (
+  // Icon-only buttons are ambiguous by nature, so every one of them explains
+  // itself on long-press (touch) / hover / focus. `tooltip={false}` opts out.
+  const tip = tooltip === false ? null : (tooltip || label)
+
+  const button = (
     <motion.button
       ref={ref}
       aria-label={label}
@@ -37,6 +42,8 @@ const IconButton = forwardRef(function IconButton(
       )}
     </motion.button>
   )
+
+  return tip ? <Tooltip label={tip}>{button}</Tooltip> : button
 })
 
 export default IconButton
