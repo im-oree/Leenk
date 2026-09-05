@@ -374,8 +374,14 @@ export const campusMap = {
     if (!USE_API) {
       return mock({
         success: true, enabled: true, ghostIsFree: true, kAnonymity: 3,
-        tileStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
-        tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/dark',
+        // Overridable so a blocked network, an offline demo or a self-hosted
+        // tile server can be pointed at without a code change. The backend
+        // serves the same value from appConfig in API mode.
+        tileStyleUrl: import.meta.env.VITE_MAP_STYLE_URL
+          || 'https://tiles.openfreemap.org/styles/positron',
+        tileStyleUrlDark: import.meta.env.VITE_MAP_STYLE_URL_DARK
+          || import.meta.env.VITE_MAP_STYLE_URL
+          || 'https://tiles.openfreemap.org/styles/dark',
         settings: { visibility: 'mutuals', ghost: false, hiddenFrom: [] },
       })
     }

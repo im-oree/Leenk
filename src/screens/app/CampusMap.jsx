@@ -42,6 +42,9 @@ export default function CampusMap() {
   const mapRef = useRef(null)
   const markers = useRef([])
   const [ready, setReady] = useState(false)
+  // Ref mirror of `ready`: the 'error' and timeout handlers close over the
+  // initial state value, so reading the state directly would always see false.
+  const mapReady = useRef(false)
   const [failed, setFailed] = useState(false)
   const [selected, setSelected] = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -54,12 +57,14 @@ export default function CampusMap() {
 
   const pins = pinData?.pins || []
   const heatmap = pinData?.heatmap || []
+  const onCampusCount = pinData?.onCampusCount ?? 0
   const styleUrl = theme === 'dark' ? cfg?.tileStyleUrlDark : cfg?.tileStyleUrl
 
   /* ------------------------------ map init ------------------------------ */
   useEffect(() => {
     if (!holder.current || !styleUrl || mapRef.current) return
     let cancelled = false
+    let cleanupTimer = null
 
     ;(async () => {
       try {
@@ -74,8 +79,30 @@ export default function CampusMap() {
           zoom: 14.4,
           attributionControl: { compact: true },
         })
-        map.on('load', () => !cancelled && setReady(true))
-        map.on('error', () => !cancelled && setFailed(true))
+
+        // 'load' only fires once the style AND its first tiles arrive. On a
+        // blocked network or captive portal that never happens, so we must
+        // not leave the user staring at a spinner forever.
+        const giveUp = setTimeout(() => {
+          if (!cancelled && !mapReady.current) setFailed(true)
+        }, 8000)
+
+        map.on('load', () => {
+          if (cancelled) return
+          mapReady.current = true
+          clearTimeout(giveUp)
+          setReady(true)
+        })
+
+        // MapLibre emits 'error' for recoverable things too (a single missing
+        // tile, a font 404). Only treat it as fatal if the map never loaded.
+        map.on('error', (e) => {
+          if (cancelled) return
+          console.warn('[map]', e?.error?.message || e?.type)
+          if (!mapReady.current) setFailed(true)
+        })
+
+        cleanupTimer = giveUp
         mapRef.current = map
       } catch {
         if (!cancelled) setFailed(true)
@@ -84,6 +111,8 @@ export default function CampusMap() {
 
     return () => {
       cancelled = true
+      clearTimeout(cleanupTimer)
+      mapReady.current = false
       markers.current.forEach((m) => m.remove())
       markers.current = []
       mapRef.current?.remove()
@@ -242,19 +271,53 @@ export default function CampusMap() {
           </div>
         )}
 
+        {/* Tiles failed (offline, blocked network, tile host down).
+            The base map is decoration — who is nearby is the actual content —
+            so fall back to a list instead of throwing the screen away. */}
         {failed && (
-          <div className="absolute inset-0 grid place-items-center bg-[color:var(--app-bg)] px-6">
-            <EmptyState
-              icon="compass"
-              title="Map unavailable"
-              description="We couldn't load the map right now. Check your connection and try again."
-            />
+          <div className="absolute inset-0 overflow-y-auto no-scrollbar bg-[color:var(--app-bg)]">
+            <div className="max-w-[var(--content-max)] mx-auto px-4 py-4">
+              <div className="flex items-start gap-2.5 px-3.5 py-3 mb-3 rounded-2xl elev border hairline">
+                <Icon name="compass" size={16} className="muted shrink-0 mt-0.5" />
+                <p className="text-[12.5px] muted leading-relaxed">
+                  Can't load the map right now. Here's who's nearby.
+                </p>
+              </div>
+
+              {pins.length === 0 ? (
+                <EmptyState
+                  icon="users"
+                  title="Nobody's sharing yet"
+                  description="When mutuals share their location, they'll show up here."
+                />
+              ) : (
+                pins.map((p) => (
+                  <button
+                    key={p.uid}
+                    onClick={() => openPin(p)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left active:opacity-70"
+                  >
+                    <Avatar src={p.photo} name={p.name} size="md" verified={p.verified} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14.5px] font-semibold truncate">{p.name}</span>
+                      <span className="block text-[12px] muted truncate">{p.lastSeen}</span>
+                    </span>
+                  </button>
+                ))
+              )}
+
+              {onCampusCount > 0 && (
+                <p className="text-[11.5px] muted text-center pt-3">
+                  {onCampusCount} on campus right now
+                </p>
+              )}
+            </div>
           </div>
         )}
 
         {/* You are invisible: say so plainly, and make it one tap to change. */}
         <AnimatePresence>
-          {ready && invisible && (
+          {(ready || failed) && invisible && (
             <motion.button
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
