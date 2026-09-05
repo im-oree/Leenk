@@ -125,10 +125,24 @@ function reducer(state, action) {
         ...state,
         threads: {
           ...state.threads,
-          [action.matchId]: [...list, { id: Date.now(), mine: true, text: action.text, at: Date.now() }],
+          [action.matchId]: [...list, {
+            id: Date.now(),
+            mine: true,
+            text: action.text || '',
+            mediaUrl: action.mediaUrl || null,
+            kind: action.kind || 'text',
+            at: Date.now(),
+          }],
         },
         matches: state.matches.map((m) =>
-          m.id === action.matchId ? { ...m, lastMessage: { text: action.text, mine: true }, isNew: false, unread: 0 } : m,
+          m.id === action.matchId
+            ? {
+                ...m,
+                lastMessage: { text: action.text || (action.kind === 'image' ? 'Photo' : 'GIF'), mine: true },
+                isNew: false,
+                unread: 0,
+              }
+            : m,
         ),
       }
     }

@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useParams } from 'react-router-dom'
 import Page from '../../components/layout/Page'
 import Header from '../../components/layout/Header'
+import SmartImage from '../../components/ui/SmartImage'
+import { chat as chatApi, media as mediaApi } from '../../lib/data'
+import { pickImages, takePhoto } from '../../lib/gallery'
 import Avatar from '../../components/ui/Avatar'
 import Icon from '../../components/ui/Icon'
 import IconButton from '../../components/ui/IconButton'
@@ -25,6 +28,7 @@ export default function Chat() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmUnmatch, setConfirmUnmatch] = useState(false)
   const [typing, setTyping] = useState(false)
+  const [attaching, setAttaching] = useState(false)
   const endRef = useRef(null)
 
   useEffect(() => {
@@ -50,14 +54,43 @@ export default function Chat() {
     )
   }
 
-  const send = () => {
+  const send = async () => {
     const t = text.trim()
     if (!t) return
     haptic('light')
+
+    // Optimistic: paint the bubble now, reconcile after the server replies.
     dispatch({ type: 'message/send', matchId, text: t })
     setText('')
     setTyping(true)
     setTimeout(() => setTyping(false), 2200)
+
+    try {
+      await chatApi.send(matchId, { text: t, kind: 'text' })
+    } catch (err) {
+      toast(err.message || 'Message failed to send', 'error')
+    }
+  }
+
+  /** Attach a photo: pick -> upload -> send as an image message. */
+  const sendPhoto = async (source = 'gallery') => {
+    try {
+      const picked = source === 'camera' ? await takePhoto() : await pickImages({ limit: 1 })
+      if (!picked.length) return
+      setAttaching(true)
+
+      const up = await mediaApi.upload(picked[0], 'chat')
+      const url = up.media.url
+
+      dispatch({ type: 'message/send', matchId, text: '', mediaUrl: url, kind: 'image' })
+      await chatApi.send(matchId, { mediaUrl: url, kind: 'image', meta: { thumb: up.media.thumb } })
+      haptic('success')
+    } catch (err) {
+      toast(err.message || "Couldn't send that photo", 'error')
+      haptic('error')
+    } finally {
+      setAttaching(false)
+    }
   }
 
   return (
@@ -124,8 +157,18 @@ export default function Chat() {
                         : 'elev border hairline rounded-3xl rounded-bl-lg'
                     }`}
                   >
+                    {m.mediaUrl && (
+                      <SmartImage
+                        src={m.mediaUrl}
+                        alt=""
+                        className="w-[210px] rounded-2xl mb-1.5 -mx-1"
+                        aspect="1 / 1"
+                      />
+                    )}
                     {m.text}
-                    <span className={`block text-[10.5px] mt-1 ${m.mine ? 'text-white/65' : 'muted'}`}>{clockTime(m.at)}</span>
+                    <span className={`block text-[10.5px] mt-1 ${m.mine ? 'text-white/65' : 'muted'}`}>
+                      {clockTime(m.at)}{m.editedAt ? ' · edited' : ''}
+                    </span>
                   </div>
                 </motion.div>
               )
@@ -159,7 +202,7 @@ export default function Chat() {
 
       <div className="glass border-t hairline px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]">
         <div className="max-w-[560px] mx-auto flex items-end gap-2">
-          <IconButton icon="image" label="Send photo" onClick={() => toast('Photo picker is a native hook', 'brand')} />
+          <IconButton icon="image" label="Send photo" disabled={attaching} onClick={() => sendPhoto('gallery')} />
           <div className="flex-1 flex items-end rounded-3xl elev border hairline px-4 py-1">
             <textarea
               rows={1}

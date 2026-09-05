@@ -13,6 +13,8 @@ import FiltersSheet from './FiltersSheet'
 import { Wordmark } from '../../components/brand/Logo'
 import { useStore } from '../../lib/store'
 import { haptic } from '../../lib/haptics'
+import { discovery } from '../../lib/data'
+import OfflineBanner from '../../components/ui/OfflineBanner'
 
 export default function Discover() {
   const navigate = useNavigate()
@@ -23,14 +25,20 @@ export default function Discover() {
   const visible = queue.slice(0, 3)
 
   const doSwipe = useCallback(
-    (dir) => {
+    async (dir) => {
       const top = queue[0]
       if (!top) return
-      // Mock: a like matches roughly 1 in 3, a super-like always matches.
-      const forceMatch = dir === 'super' || (dir === 'right' && Math.random() < 0.34)
-      dispatch({ type: 'swipe', dir, forceMatch })
-      if (forceMatch) {
-        setTimeout(() => setNewMatch({ id: `m-${top.uid}`, user: top }), 260)
+
+      // Advance the stack IMMEDIATELY — the next card must never wait on a
+      // network round trip, or swiping feels broken on a slow connection.
+      dispatch({ type: 'swipe', dir, forceMatch: false })
+
+      // The server decides whether it's a match; show the overlay when it says so.
+      try {
+        const res = await discovery.swipe(top.uid, dir, { source: 'stack' })
+        if (res?.matched) setNewMatch({ id: res.match?.id || `m-${top.uid}`, user: top })
+      } catch {
+        // Offline: the swipe is consumed locally and reconciled on reconnect.
       }
     },
     [queue, dispatch],
