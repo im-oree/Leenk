@@ -17,7 +17,6 @@ import { useStore } from '../../lib/store'
 import { useNav } from '../../components/layout/NavContext'
 import { stories as storiesApi } from '../../lib/data'
 import { useAsync } from '../../lib/useAsync'
-import OfflineBanner from '../../components/ui/OfflineBanner'
 import Spinner from '../../components/ui/Spinner'
 
 export default function Feed() {
@@ -85,7 +84,6 @@ export default function Feed() {
             />
           </div>
 
-          <OfflineBanner />
 
           <StoryRail
             rail={rail}

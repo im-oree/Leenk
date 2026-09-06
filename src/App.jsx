@@ -11,6 +11,7 @@ import Splash from './components/brand/Splash'
 import { NavDirectionProvider } from './components/layout/NavDirection'
 import NavBar from './components/layout/NavBar'
 import ToastHost from './components/ui/Toast'
+import OfflineBanner from './components/ui/OfflineBanner'
 import { useStore } from './lib/store'
 
 import Welcome from './screens/onboarding/Welcome'
@@ -142,6 +143,9 @@ function Shell() {
 
       {/* Phone gets the bottom pill; tablet and up get a left rail. */}
       {isCompact ? <NavBar /> : inApp ? <SideRail /> : null}
+      {/* One banner for the whole app, pinned above the nav. Previously it was
+          pasted into four screens and absent from the other twenty-three. */}
+      <OfflineBanner floating />
       <ToastHost />
     </>
   )

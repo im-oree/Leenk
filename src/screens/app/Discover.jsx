@@ -14,7 +14,6 @@ import { Wordmark } from '../../components/brand/Logo'
 import { useStore } from '../../lib/store'
 import { haptic } from '../../lib/haptics'
 import { discovery } from '../../lib/data'
-import OfflineBanner from '../../components/ui/OfflineBanner'
 
 export default function Discover() {
   const navigate = useNavigate()

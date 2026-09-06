@@ -70,6 +70,48 @@ body {
 input, textarea, select, button { font: inherit; color: inherit; }
 button { touch-action: manipulation; }
 
+/* ---------- Press feedback ----------
+   Every tappable element acknowledges the touch. Without this an action just
+   "cuts" -- the screen changes with nothing confirming the tap landed, which
+   on a phone reads as the app being unresponsive rather than fast.
+
+   Applied globally so the ~45 raw <button> elements behave like the handful
+   that had whileTap on them, and kept cheap: transform + opacity only, both
+   GPU-composited, so it costs nothing on a slow device.
+
+   Anything that opts out (a full-bleed overlay, a story tap zone) can set
+   .no-press. */
+button:not(:disabled):not(.no-press),
+[role="button"]:not([aria-disabled="true"]):not(.no-press),
+a[href]:not(.no-press),
+label[for]:not(.no-press),
+summary:not(.no-press) {
+  transition: transform .13s cubic-bezier(.22,1,.36,1), opacity .13s ease;
+}
+
+button:not(:disabled):not(.no-press):active,
+[role="button"]:not([aria-disabled="true"]):not(.no-press):active,
+a[href]:not(.no-press):active,
+label[for]:not(.no-press):active,
+summary:not(.no-press):active {
+  transform: scale(.965);
+  opacity: .8;
+}
+
+/* Disabled controls must look inert, not merely unresponsive. */
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
+/* Respect the OS setting: keep the opacity cue, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):not(.no-press):active,
+  [role="button"]:not([aria-disabled="true"]):not(.no-press):active,
+  a[href]:not(.no-press):active,
+  label[for]:not(.no-press):active,
+  summary:not(.no-press):active {
+    transform: none;
+  }
+}
+
 ::-webkit-scrollbar { width: 0; height: 0; }
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

@@ -8,7 +8,6 @@ import Chip from '../../components/ui/Chip'
 import Avatar from '../../components/ui/Avatar'
 import Icon from '../../components/ui/Icon'
 import EmptyState from '../../components/ui/EmptyState'
-import OfflineBanner from '../../components/ui/OfflineBanner'
 import SmartImage from '../../components/ui/SmartImage'
 import { GridSkeleton, PersonRowSkeleton, SkeletonList } from '../../components/ui/Skeleton'
 import { useStore } from '../../lib/store'
@@ -74,7 +73,6 @@ export default function Explore() {
         />
       }
     >
-      <OfflineBanner />
 
       <div className="max-w-[var(--content-max)] w-full mx-auto">
         <div className="px-4 pt-3">

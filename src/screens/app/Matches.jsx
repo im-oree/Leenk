@@ -10,7 +10,6 @@ import Icon from '../../components/ui/Icon'
 import EmptyState from '../../components/ui/EmptyState'
 import Badge from '../../components/ui/Badge'
 import { ChatRowSkeleton, StoryRingSkeleton, SkeletonList } from '../../components/ui/Skeleton'
-import OfflineBanner from '../../components/ui/OfflineBanner'
 import { useStore } from '../../lib/store'
 import { chat as chatApi } from '../../lib/data'
 import { useAsync } from '../../lib/useAsync'
@@ -43,7 +42,6 @@ export default function Matches() {
       }
     >
 
-      <OfflineBanner />
 
       <div className="max-w-[var(--content-max)] w-full mx-auto">
         <div className="px-4 pt-3">

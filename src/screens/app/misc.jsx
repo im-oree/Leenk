@@ -902,8 +902,8 @@ export function StoryViewer() {
           </div>
         </div>
 
-        <button className="absolute left-0 inset-y-0 w-1/3" onClick={prev} aria-label="Previous" />
-        <button className="absolute right-0 inset-y-0 w-1/3" onClick={next} aria-label="Next" />
+        <button className="no-press absolute left-0 inset-y-0 w-1/3" onClick={prev} aria-label="Previous" />
+        <button className="no-press absolute right-0 inset-y-0 w-1/3" onClick={next} aria-label="Next" />
 
         {item.caption && (
           <p className="absolute bottom-24 left-4 right-4 text-white text-[15px] leading-snug drop-shadow">

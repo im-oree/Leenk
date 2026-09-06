@@ -17,6 +17,8 @@ const NetworkContext = createContext({
   retry: () => {},
 })
 
+import { USE_API } from './api'
+
 const PROBE_URL = '/api'
 const PROBE_TIMEOUT = 6000
 
@@ -28,6 +30,13 @@ export function NetworkProvider({ children }) {
   const timer = useRef(null)
 
   const probe = useCallback(async () => {
+    // In mock mode there is no backend to reach, so probing would report the
+    // app as offline on a perfectly healthy machine. Only the radio matters.
+    if (!USE_API) {
+      const up = typeof navigator === 'undefined' ? true : navigator.onLine
+      setReachable(up)
+      return up
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setReachable(false)
       return false
