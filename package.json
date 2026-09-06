@@ -8,8 +8,9 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "cap:sync": "npm run build && cap sync",
-    "verify": "node scripts/verify-layout.mjs && node scripts/verify-wiring.mjs && node scripts/verify-modules.mjs && node scripts/verify-render.mjs && npm run verify:mount && node scripts/verify-logic.mjs",
-    "verify:mount": "vite-node --config vite.verify.config.js scripts/client-mount.mjs"
+    "verify": "node scripts/verify-layout.mjs && node scripts/verify-wiring.mjs && node scripts/verify-modules.mjs && node scripts/verify-render.mjs && npm run verify:mount && npm run verify:images && node scripts/verify-logic.mjs",
+    "verify:mount": "vite-node --config vite.verify.config.js scripts/client-mount.mjs",
+    "verify:images": "vite-node --config vite.verify.config.js scripts/verify-images.mjs"
   },
   "dependencies": {
     "@capacitor/camera": "^8.2.4",

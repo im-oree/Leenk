@@ -41,7 +41,15 @@ export default function SmartImage({
   const imgRef = useRef(null)
   const mounted = useRef(true)
 
-  useEffect(() => () => { mounted.current = false }, [])
+  // Must SET mounted.current = true on every mount, not just clear it on
+  // unmount. React StrictMode runs mount -> unmount -> remount in dev, and a
+  // cleanup-only effect leaves the ref stuck at false after that first
+  // teardown. Every later setState then bails and the image is pinned on its
+  // placeholder gradient forever -- which is exactly what Explore showed.
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
 
   useEffect(() => {
     if (!src) return
@@ -61,15 +69,23 @@ export default function SmartImage({
       onLoad?.()
     }
 
-    if (img.decode) {
-      img.decode().then(finish).catch(() => {
-        // decode() rejects on some CORS/SVG cases where the image is still fine
-        img.onload = finish
-        img.onerror = () => !cancelled && mounted.current && setState('error')
-      })
-    } else {
-      img.onload = finish
-      img.onerror = () => !cancelled && mounted.current && setState('error')
+    const fail = () => { if (!cancelled && mounted.current) setState('error') }
+
+    // Always wire the events FIRST. Attaching them only inside decode()'s
+    // catch is a race: if the image is already in the browser cache it is
+    // complete before the handler is attached, `load` has already fired and
+    // will never fire again, and the component hangs on its placeholder.
+    img.onload = finish
+    img.onerror = fail
+
+    if (img.complete && img.naturalWidth > 0) {
+      // Cache hit -- no event is coming.
+      finish()
+    } else if (img.decode) {
+      // decode() rejects for reasons that do not mean failure (some SVG and
+      // CORS cases), so a rejection must not be treated as an error. The
+      // load/error handlers above remain the source of truth.
+      img.decode().then(finish).catch(() => {})
     }
 
     return () => { cancelled = true }
