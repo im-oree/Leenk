@@ -11,7 +11,10 @@ import Chip from '../../components/ui/Chip'
 import Sheet from '../../components/ui/Sheet'
 import ListRow from '../../components/ui/ListRow'
 import EmptyState from '../../components/ui/EmptyState'
-import { CANDIDATES, campusById, intentLabel } from '../../lib/mock'
+import { campusById, intentLabel } from '../../lib/mock'
+import { profile as profileApi } from '../../lib/data'
+import { useAsync } from '../../lib/useAsync'
+import Spinner from '../../components/ui/Spinner'
 import { useStore } from '../../lib/store'
 import { haptic } from '../../lib/haptics'
 import { completeHint } from '../../lib/hints'
@@ -22,10 +25,21 @@ export default function UserProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
   const { toast } = useStore()
-  const user = CANDIDATES.find((c) => c.uid === userId)
+  // Goes through the data layer, so this screen works against either the
+  // fixtures or the live API without a code change.
+  const { data, loading } = useAsync(() => profileApi.get(userId), [userId])
+  const user = data?.user || data?.profile || null
   const [photoIdx, setPhotoIdx] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [following, setFollowing] = useState(false)
+
+  if (loading) {
+    return (
+      <Page nav={false} header={<Header back title="Profile" />}>
+        <div className="flex-1 grid place-items-center"><Spinner /></div>
+      </Page>
+    )
+  }
 
   if (!user) {
     return (

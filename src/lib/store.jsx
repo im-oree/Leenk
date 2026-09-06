@@ -1,5 +1,6 @@
-import { createContext, useContext, useMemo, useReducer, useCallback, useEffect } from 'react'
+import { createContext, useContext, useMemo, useReducer, useCallback, useEffect, useState } from 'react'
 import { ME, CANDIDATES, MATCHES, POSTS, NOTIFICATIONS, THREADS } from './mock'
+import { USE_API } from './api'
 
 /**
  * Single client-side store holding everything the UI needs.
@@ -36,6 +37,8 @@ const initial = {
     reduceMotion: false,
   },
   toast: null,
+  // false until real data has replaced the seeded fixtures (API mode only).
+  hydrated: false,
 }
 
 function persistable(s) {
@@ -161,6 +164,12 @@ function reducer(state, action) {
 
     case 'toast/show':
       return { ...state, toast: { id: Date.now(), ...action.toast } }
+    // Replace seeded fixtures with real server data. Only the keys present in
+    // the payload are touched, so a partially-failed hydration leaves the rest
+    // of the store intact rather than blanking the UI.
+    case 'hydrate':
+      return { ...state, ...action.data, hydrated: true }
+
     case 'toast/hide':
       return { ...state, toast: null }
 
@@ -173,6 +182,52 @@ const StoreCtx = createContext(null)
 
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, undefined, load)
+
+  /**
+   * Hydrate from the backend when VITE_USE_API is on.
+   *
+   * The store seeds from fixtures so the prototype renders instantly with no
+   * server. In API mode those fixtures are placeholders that MUST be replaced,
+   * otherwise screens reading `useStore()` would keep showing mock people
+   * while screens using `useAsync(data.*)` show real ones -- the worst
+   * outcome, because it looks like it works.
+   *
+   * Each source is settled independently: one failing endpoint must not stop
+   * the others from populating.
+   */
+  useEffect(() => {
+    if (!USE_API) return
+    let alive = true
+
+    ;(async () => {
+      const { discovery, feed, chat, profile } = await import('./data')
+      const results = await Promise.allSettled([
+        profile.me(),
+        discovery.stack(),
+        feed.list('foryou'),
+        chat.matches(),
+      ])
+      if (!alive) return
+
+      const [meR, stackR, feedR, matchR] = results
+      const data = {}
+      if (meR.status === 'fulfilled' && meR.value?.profile) {
+        data.me = meR.value.profile
+        data.verificationStatus = meR.value.profile.verificationStatus
+          || meR.value.profile.verified ? 'verified' : 'pending'
+      }
+      if (stackR.status === 'fulfilled') data.queue = stackR.value?.cards || []
+      if (feedR.status === 'fulfilled') data.posts = feedR.value?.posts || []
+      if (matchR.status === 'fulfilled') data.matches = matchR.value?.matches || []
+
+      for (const r of results) {
+        if (r.status === 'rejected') console.warn('[store] hydrate:', r.reason?.message || r.reason)
+      }
+      dispatch({ type: 'hydrate', data })
+    })()
+
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     try {

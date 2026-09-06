@@ -16,11 +16,11 @@ import Section from '../../components/ui/Section'
 import ListRow from '../../components/ui/ListRow'
 import SegmentedControl from '../../components/ui/SegmentedControl'
 import { useStore } from '../../lib/store'
-import { CANDIDATES, POSTS, CAMPUSES, campusById, PROMPTS } from '../../lib/mock'
+import { CAMPUSES, campusById, PROMPTS } from '../../lib/mock'
 import { timeAgo } from '../../lib/format'
 import { listStagger, listItem } from '../../lib/motion'
 import { haptic } from '../../lib/haptics'
-import { payments } from '../../lib/data'
+import { payments, discovery, feed as feedApi, campus as campusApi, stories } from '../../lib/data'
 import { useAsync } from '../../lib/useAsync'
 import { openCheckout, preloadPaymentSdk } from '../../lib/payments'
 
@@ -75,7 +75,8 @@ export function Notifications() {
 /* -------------------------------- Likes --------------------------------- */
 export function Likes() {
   const navigate = useNavigate()
-  const people = CANDIDATES.slice(3, 11)
+  const { data } = useAsync(() => discovery.likes(), [])
+  const people = data?.likes || []
 
   return (
     <Page
@@ -215,11 +216,11 @@ export function PostDetail() {
   const { postId } = useParams()
   const navigate = useNavigate()
   const { posts, dispatch } = useStore()
-  const post = posts.find((p) => p.id === postId) || POSTS[0]
+  const post = posts.find((p) => p.id === postId) || null
   const [comment, setComment] = useState('')
-  const [comments, setComments] = useState(
-    CANDIDATES.slice(0, 4).map((c, i) => ({ id: i, author: c, text: ['this is such a good shot', 'ok but where is this', 'sending this to my roommate', 'the lighting 🔥'][i], at: Date.now() - i * 3600_000 })),
-  )
+  const { data: commentData } = useAsync(() => feedApi.comments(postId), [postId])
+  const [added, setAdded] = useState([])
+  const comments = [...(commentData?.comments || []), ...added]
 
   return (
     <Page
@@ -235,7 +236,7 @@ export function PostDetail() {
             <Input placeholder="Add a comment…" value={comment} onChange={(e) => setComment(e.target.value)} containerClassName="flex-1" />
             <Button
               size="md" disabled={!comment.trim()}
-              onClick={() => { setComments([...comments, { id: Date.now(), author: post.author, text: comment, at: Date.now() }]); setComment('') }}
+              onClick={() => { setAdded([...added, { id: String(Date.now()), author: post.author, text: comment, at: Date.now() }]); setComment('') }}
             >
               Post
             </Button>
@@ -734,8 +735,9 @@ export function CampusPage() {
   const { campusId } = useParams()
   const navigate = useNavigate()
   const campus = campusById(campusId)
-  const students = CANDIDATES.filter((c) => c.campusId === campusId)
-  const feed = POSTS.filter((p) => p.author.campusId === campusId)
+  const { data: campusData } = useAsync(() => campusApi.detail(campusId), [campusId])
+  const students = campusData?.students || []
+  const feed = campusData?.posts || []
   const [tab, setTab] = useState('posts')
 
   return (
@@ -798,7 +800,8 @@ export function StoryViewer() {
   const navigate = useNavigate()
   const { storyId } = useParams()
   const [progress, setProgress] = useState(0)
-  const story = CANDIDATES[0]
+  const { data: storyData } = useAsync(() => stories.rail(), [])
+  const story = (storyData?.rail || [])[0] || null
 
   useEffect(() => {
     const t = setInterval(() => {

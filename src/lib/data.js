@@ -166,7 +166,17 @@ export const feed = {
   },
 
   async comments(postId) {
-    if (!USE_API) return mock({ success: true, comments: [] })
+    if (!USE_API) {
+      return mock({
+        success: true,
+        comments: CANDIDATES.slice(0, 4).map((c, i) => ({
+          id: String(i),
+          author: toCard(c),
+          text: ['this is such a good shot', 'ok but where is this', 'sending this to my roommate', 'the lighting is unreal'][i],
+          at: Date.now() - i * 3600_000,
+        })),
+      })
+    }
     return api.comments(postId)
   },
 
@@ -446,7 +456,35 @@ export const payments = {
  * Profile & safety
  * ------------------------------------------------------------------ */
 
+export const campus = {
+  /** People and posts for a campus page. */
+  async detail(campusId) {
+    if (!USE_API) {
+      return mock({
+        success: true,
+        students: CANDIDATES.filter((c) => c.campusId === campusId).map(toCard),
+        posts: POSTS.filter((p) => p.author.campusId === campusId),
+      })
+    }
+    const [people, feedRes] = await Promise.all([
+      api.stack(40).catch(() => ({ cards: [] })),
+      api.feed('explore').catch(() => ({ posts: [] })),
+    ])
+    return {
+      success: true,
+      students: (people.cards || []).filter((c) => c.campusId === campusId),
+      posts: (feedRes.posts || []).filter((p) => p.author?.campusId === campusId),
+    }
+  },
+}
+
 export const profile = {
+  /** The signed-in user. Used to hydrate the store in API mode. */
+  async me() {
+    if (!USE_API) return mock({ success: true, profile: ME })
+    return api.me()
+  },
+
   async get(uid) {
     if (!USE_API) {
       const u = CANDIDATES.find((c) => (c.uid || c.id) === uid) || ME
