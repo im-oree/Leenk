@@ -1,0 +1,88 @@
+# Render blueprint — Leenk API.
+#
+# The frontends (student app + admin console) deploy to Vercel; only the
+# Express API lives here. Create from Render > Blueprints > New, pointed at
+# this repo.
+#
+# `sync: false` marks a secret that Render will prompt for rather than read
+# from this file. Nothing sensitive belongs in version control.
+
+services:
+  - type: web
+    name: leenk-api
+    runtime: node
+    plan: free
+    region: frankfurt          # closest Render region to Nigeria
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+
+    # Render pings this to decide whether a deploy is live. It must not
+    # require auth — /health is public by design, /api/* is not.
+    healthCheckPath: /health
+
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+
+      # Render injects PORT; the server already reads it.
+
+      # --- Secrets: set these in the Render dashboard ---
+      - key: JWT_SECRET
+        generateValue: true    # Render generates a strong value on first deploy
+      - key: ADMIN_KEY
+        sync: false            # admin console key; without it the admin API 503s
+
+      # Comma-separated. MUST include both Vercel origins, or the browser
+      # will block every request with a CORS error.
+      # e.g. https://leenk.vercel.app,https://leenk-admin.vercel.app
+      - key: CORS_ORIGIN
+        sync: false
+
+      # --- Firebase (Leenk's own project, not StudentHub's) ---
+      # Without these the API silently falls back to an in-memory store that
+      # is wiped on every restart. Fine for a demo, never for production.
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+
+      # --- StudentHub federation (optional) ---
+      - key: STUDENTHUB_ENABLED
+        value: "false"
+      - key: STUDENTHUB_BASE_URL
+        value: https://studenthub-backend-1w1n.onrender.com
+      - key: STUDENTHUB_APP_ID
+        value: leenk
+      - key: STUDENTHUB_WRITE_KEY
+        sync: false
+      - key: STUDENTHUB_OAUTH_CLIENT_ID
+        sync: false
+      - key: STUDENTHUB_OAUTH_CLIENT_SECRET
+        sync: false
+
+      # --- Payments (ship disabled; enable once verified) ---
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_PUBLIC_KEY
+        sync: false
+
+      # --- Media / moderation (free tiers) ---
+      - key: IMGBB_KEYS
+        sync: false            # comma-separated, round-robined
+      - key: GROQ_API_KEY
+        sync: false
+
+      # Leave UNSET in production. When set, it is the only accepted OTP,
+      # which would let anyone sign in as anyone.
+      # - key: DEV_OTP_CODE

@@ -29,7 +29,37 @@ const app = express()
 
 app.set('trust proxy', 1)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
-app.use(cors({ origin: true, credentials: true }))
+/**
+ * CORS.
+ *
+ * `origin: true` reflects whatever Origin the caller sends, which combined
+ * with credentials means any website could make authenticated calls on a
+ * logged-in user's behalf. Acceptable in dev; not in production.
+ *
+ * In production we allow only the origins named in CORS_ORIGIN. Requests with
+ * no Origin header (curl, health checks, native app webviews) are still
+ * allowed, since CORS is a browser mechanism and blocking them would break
+ * Render's own health probe and the Capacitor build.
+ */
+const allowedOrigins = config.corsOrigins
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true)
+    if (config.env !== 'production') return cb(null, true)
+    if (!allowedOrigins.length) return cb(null, true)   // unset = allow, but warn at boot
+    // Signal "not allowed" WITHOUT throwing. Throwing here surfaces as a 500,
+    // which looks like the API is broken rather than the origin being
+    // unlisted -- a genuinely confusing thing to debug at deploy time.
+    // Returning false simply omits the CORS headers, and the browser blocks
+    // the request, which is the correct behaviour.
+    if (!allowedOrigins.includes(origin)) {
+      console.warn(`[cors] blocked origin: ${origin}`)
+      return cb(null, false)
+    }
+    return cb(null, true)
+  },
+  credentials: true,
+}))
 // Payment webhooks are signature-verified over the RAW body, so the raw
 // parser MUST come before express.json() or the signature can never match.
 app.use('/api/payments/webhook', express.raw({ type: '*/*', limit: '1mb' }))
@@ -120,6 +150,13 @@ const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`[leenk] API listening on :${config.port} (${config.env})`)
   console.log(`[leenk] store: ${usingMemory() ? 'in-memory (set FIREBASE_* to use Firestore)' : 'firestore'}`)
   console.log(`[leenk] studenthub: ${config.studentHub.enabled ? config.studentHub.baseUrl : 'disabled'}`)
+  console.log(`[leenk] cors: ${allowedOrigins.length ? allowedOrigins.join(', ') : 'any origin'}`)
+  if (isProd && !allowedOrigins.length) {
+    console.warn('[leenk] WARNING: CORS_ORIGIN is unset in production — any site can call this API with credentials.')
+  }
+  if (isProd && !process.env.ADMIN_KEY) {
+    console.warn('[leenk] WARNING: ADMIN_KEY is unset — the admin API is disabled.')
+  }
 })
 
 // Outbox retry sweep

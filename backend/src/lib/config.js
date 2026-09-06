@@ -30,6 +30,11 @@ export const config = {
     timeoutMs: num(process.env.STUDENTHUB_TIMEOUT_MS, 8000),
   },
 
+  // Comma-separated list of origins allowed to call the API in production.
+  // Empty in development, where we reflect any origin instead.
+  corsOrigins: (process.env.CORS_ORIGIN || '')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+
   auth: {
     // Dev-only OTP bypass. When no SMS provider is configured this is the
     // only accepted code. MUST be unset in production -- the login route
