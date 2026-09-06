@@ -778,3 +778,140 @@ Please confirm each returns the documented shape:
 ---
 
 *Questions → Leenk team. This document is versioned in the Leenk repo at `backend/docs/STUDENTHUB_INTEGRATION.md`.*
+
+---
+
+# ADDENDUM — verified against a live sibling app (BU-Scheduler)
+
+Everything above was written from the product spec. This section is what the
+**existing, deployed StudentHub child app** (`im-oree/BU-Scheduler`) actually
+does. Where the two disagree, **this section wins** — it is observed, not
+proposed.
+
+## 1. There are two integration surfaces, not one
+
+BU-Scheduler uses **both**, for different things:
+
+| Surface | Used for | Notes |
+|---|---|---|
+| **REST + OIDC** (`/oauth/*`, `/api/auth/*`, `/api/shared-data/*`) | sign-in, identity, permissioned reads | The documented multi-app contract |
+| **Firestore SDK, direct** | groups, timetables, chats, profiles | Reads `users`, `courseGroups`, `groupTimetables`, `groupChats`, `notifications` straight from the shared project |
+
+The direct-Firestore path matters for Leenk: `firestore.rules` has
+`match /users/{userId} { allow read: if isAuthenticated(); }` — **any signed-in
+StudentHub user can read any user document.** If Leenk ever shares that
+project, Leenk profile data would inherit the same rule. This is the single
+strongest argument for Leenk keeping its **own** Firebase project, which is
+what we already do.
+
+## 2. Confirmed endpoints
+
+```
+POST /api/auth/signup
+POST /api/auth/login
+POST /api/auth/firebase-to-jwt
+POST /api/auth/authorize-app
+GET  /api/auth/authorized-apps
+POST /api/auth/revoke-app
+GET  /api/auth/verify
+GET  /api/auth/user-profile          <- session validation (Bearer)
+POST /api/auth/logout                <- revokes the JWT by jti
+GET  /api/auth/audit-log
+GET  /api/shared-data/:dataType
+POST /api/shared-data/snapshot
+GET  /api/shared-data/audit-log
+POST /api/shared-data/share-token
+GET  /api/shared-data/access/:token
+GET  /api/shared-data/permissions
+POST /api/shared-data/permissions/grant
+POST /api/shared-data/permissions/revoke
+```
+
+**`:dataType` is an enum:** `profile | events | schedule | transactions |
+notifications | wallet`.
+
+> **Correction to our federation client.** We were calling
+> `/api/shared-data/posts`. **That type does not exist.** The call would have
+> 404'd on every request and — because the circuit breaker degrades silently —
+> the Leenk feed would simply never have shown StudentHub content, with no
+> error surfaced. Now configurable via `federation.sharedDataType`
+> (default `announcements`).
+
+## 3. Identity resolution — answers our open Google question
+
+BU-Scheduler's documented order when exchanging a StudentHub auth code:
+
+```
+1. studenthubId supplied?  -> look up studenthubIdMap -> reuse that user
+2. else match on email     -> link studenthubId to the existing account
+3. else                    -> create the account, then link
+```
+
+So **email is the fallback join key**, and `studenthubId` is canonical once
+known. This is exactly the mechanism Leenk should copy for "Sign in with
+Google": a student who used Google on StudentHub is matched by verified email
+and then permanently pinned by `studenthubId`. Leenk does **not** need to share
+StudentHub's Firebase project to achieve single-identity.
+
+Their `UserRecord` carries:
+
+```ts
+studenthubId?: string
+identityProvider?: 'local' | 'studenthub'
+linkedAt?: string
+authVersion: number
+```
+
+We should mirror `studenthubId`, `identityProvider` and `linkedAt` on the Leenk
+user document. `authVersion` is worth copying too — it makes a future migration
+non-breaking.
+
+## 4. OAuth specifics observed
+
+- PKCE: `codeVerifier` 48 bytes, base64url, SHA-256 challenge
+- `state` and `nonce`: 24 random bytes each, base64url
+- Pending request is held in **sessionStorage**, keyed by `state`
+- Scopes used: `openid profile email timetable groups notifications`
+- Discovery is published at `/.well-known/openid-configuration`
+- Redirect URI is `${origin}/auth/callback`
+- JWTs carry `jti` + `iat`, and logout works by **revoking the jti**
+
+Leenk should keep its own scope list (`openid profile email` plus whatever the
+dating profile genuinely needs) — requesting `timetable` or `wallet` for a
+dating app would be unjustified data collection.
+
+## 5. Profile field names are inconsistent upstream
+
+Their mapper accepts several spellings for the same field:
+
+```
+name  <- fullName | displayName | nickname
+phone <- phoneNumber | phone
+level <- level | studyLevel
+bio   <- bio | aiSharedContext | preferences.bio
+```
+
+Our `profileMapper.js` must tolerate the same variants rather than assuming one.
+
+## 6. Worth adopting
+
+- **`GET /api/auth/audit-log` per user.** They log `account_created`,
+  `account_linked`, `studenthub_login`, `local_login`, `logout`,
+  `app_authorized`, `app_revoked`. Leenk has admin audit but no *user-visible*
+  auth history; for a dating app, "where has my account been signed in" is a
+  genuine safety feature.
+- **Token revocation by `jti`.** Our JWTs are currently valid until expiry,
+  so "sign out everywhere" is not actually enforceable. Theirs is.
+- **`authorizedApps` + granular permission grant/revoke.** If a student can see
+  and revoke Leenk's access to their StudentHub data, that is both good privacy
+  practice and likely required for consent.
+- **IndexedDB offline cache** (`src/lib/offlineCache.ts`) — a clean
+  `withCachedValue(key, loader)` envelope with `updatedAt`. Better than our
+  in-memory-only caching for a PWA on a patchy campus network.
+
+## 7. Deployment shape (matches ours)
+
+Frontend on Vercel, backend on Render, `CORS_ORIGIN` on the backend set to the
+Vercel domain, `VITE_API_BASE_URL` pointing at the Render URL **with `/api`
+appended**. Confirms CORS is a real production concern for Leenk, even though
+it is invisible in dev behind the Vite proxy.

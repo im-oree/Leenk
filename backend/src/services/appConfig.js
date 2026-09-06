@@ -170,6 +170,10 @@ export const DEFAULTS = {
     enabled: true,
     everyN: 5,              // one federated post per 5 Leenk posts
     maxShare: 0.25,         // hard ceiling on feed occupancy
+    // StudentHub shared-data type to pull. Verified types today:
+    // profile | events | schedule | transactions | notifications | wallet
+    // plus 'announcements' as used by the BU-Scheduler child app.
+    sharedDataType: 'announcements',
     cacheTtlMs: 120000,
     timeoutMs: 2500,        // feed must not wait on a slow StudentHub
     breakerCooldownMs: 60000,

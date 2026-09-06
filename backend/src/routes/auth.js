@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db, FieldValue } from '../lib/firebase.js'
 import { config } from '../lib/config.js'
-import { signLeenkToken, requireAuth } from '../middleware/auth.js'
+import { signLeenkToken, requireAuth, revokeToken } from '../middleware/auth.js'
 import {
   exchangeCode, fetchUserInfo, fetchLeenkProfileBundle, firebaseToJwt, studentHubEnabled,
 } from '../services/studentHub.js'
@@ -290,5 +290,42 @@ export function publicSelf(p = {}) {
   } = p
   return safe
 }
+
+/* ------------------------------ POST /logout ------------------------------ *
+ * Revokes the presented token by its jti so it stops working immediately,
+ * rather than merely being dropped by the client and staying valid until it
+ * expires. Also records the event, so a user can later be shown where and
+ * when their account was signed in and out.
+ */
+router.post('/logout', requireAuth, async (req, res, next) => {
+  try {
+    const { jti, exp } = req.tokenClaims || {}
+    await revokeToken(jti, exp ? exp * 1000 : undefined)
+
+    await db().collection('users').doc(req.user.uid)
+      .collection('authEvents').add({
+        action: 'logout',
+        at: Date.now(),
+        // Coarse only: enough to recognise a session, not to track a person.
+        userAgent: String(req.get('user-agent') || '').slice(0, 200),
+      }).catch(() => {})
+
+    res.json({ success: true })
+  } catch (err) { next(err) }
+})
+
+/* --------------------------- GET /auth-events ---------------------------- *
+ * The user's own sign-in history. On a dating app "where has my account been
+ * used" is a safety feature, not just a developer convenience.
+ */
+router.get('/auth-events', requireAuth, async (req, res, next) => {
+  try {
+    const snap = await db().collection('users').doc(req.user.uid)
+      .collection('authEvents').limit(50).get()
+    const events = snap.docs.map((d) => d.data())
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+    res.json({ success: true, events })
+  } catch (err) { next(err) }
+})
 
 export default router

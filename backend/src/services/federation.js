@@ -80,11 +80,17 @@ export function normalizePost(raw, { campusId } = {}) {
   const id = raw.id || raw._id || raw.postId
   if (!id) return null
 
-  const author = raw.author || raw.user || {}
-  const authorName = author.fullName || author.name || raw.authorName
+  // BU-Scheduler announcements store `author` as a plain display string; the
+  // richer feed shape nests an object. Handle both.
+  const author = (typeof raw.author === 'object' && raw.author) || raw.user || {}
+  const authorName = (typeof raw.author === 'string' ? raw.author : null)
+    || author.fullName || author.displayName || author.name || raw.authorName
   if (!authorName) return null
 
-  const caption = String(raw.body ?? raw.caption ?? raw.content ?? '').slice(0, 2000)
+  // StudentHub announcements are {title, body}; posts would be {caption}.
+  const title = String(raw.title ?? '').trim()
+  const body = String(raw.body ?? raw.caption ?? raw.content ?? '').trim()
+  const caption = (title && body ? `${title}\n${body}` : title || body).slice(0, 2000)
   const media = raw.mediaUrl || raw.image || raw.imageUrl || (Array.isArray(raw.media) ? raw.media[0]?.url : null)
 
   // A post with neither text nor media is not worth a slot in the feed.
@@ -142,8 +148,17 @@ export async function fetchCampusPosts(campusId, { limit = 20 } = {}) {
   const timer = setTimeout(() => ctrl.abort(), cfg.timeoutMs ?? 2500)
 
   try {
-    const url = `${SH.baseUrl}/api/shared-data/posts`
-      + `?campusId=${encodeURIComponent(campusId)}&limit=${limit}`
+    // NOTE: verified against the BU-Scheduler integration (the other live
+    // StudentHub child app). Its documented shared-data types are:
+    //   profile | events | schedule | transactions | notifications | wallet
+    // There is NO 'posts' type today. `announcements` is what the sibling app
+    // renders as campus-wide content, so we ask for that and fall back to
+    // events. If StudentHub adds a real posts feed later, only this URL and
+    // normalizePost() change.
+    const type = cfg.sharedDataType || 'announcements'
+    const url = `${SH.baseUrl}/api/shared-data/${type}`
+      + `?appId=${encodeURIComponent(SH.appId)}`
+      + `&campusId=${encodeURIComponent(campusId)}&limit=${limit}`
 
     const res = await fetch(url, {
       signal: ctrl.signal,
@@ -155,7 +170,11 @@ export async function fetchCampusPosts(campusId, { limit = 20 } = {}) {
     if (!res.ok) throw new Error(`StudentHub ${res.status}`)
 
     const json = await res.json()
-    const list = Array.isArray(json) ? json : json.posts || json.items || []
+    // BU-Scheduler's client reads `payload.data`; older handlers return a bare
+    // array. Accept every shape rather than silently rendering nothing.
+    const list = Array.isArray(json)
+      ? json
+      : json.data || json.posts || json.items || json.announcements || []
 
     const items = list
       .map((r) => normalizePost(r, { campusId }))

@@ -2,12 +2,73 @@ import jwt from 'jsonwebtoken'
 import { config } from '../lib/config.js'
 import { db, auth as fbAuth, usingMemory } from '../lib/firebase.js'
 
+import crypto from 'node:crypto'
+
+/**
+ * Every token carries a `jti` so it can be revoked before expiry.
+ *
+ * Without this, "sign out" only deletes the token client-side and the JWT
+ * stays valid until it expires -- so "sign out on all devices" is a lie, and a
+ * stolen token cannot be killed. Pattern adopted from the sibling StudentHub
+ * app (BU-Scheduler), which revokes by jti on logout.
+ */
 export function signLeenkToken(payload) {
-  return jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.ttlSeconds })
+  return jwt.sign(
+    { ...payload, jti: crypto.randomUUID() },
+    config.jwt.secret,
+    { expiresIn: config.jwt.ttlSeconds },
+  )
 }
 
 export function verifyLeenkToken(token) {
   return jwt.verify(token, config.jwt.secret)
+}
+
+/**
+ * Revoked token ids.
+ *
+ * In-process cache in front of Firestore: the check runs on EVERY authed
+ * request, so it must not cost a read each time. Entries are dropped once the
+ * token would have expired anyway, which bounds the set.
+ */
+const revoked = new Map()   // jti -> expiresAtMs
+
+export async function revokeToken(jti, expiresAtMs) {
+  if (!jti) return
+  revoked.set(jti, expiresAtMs || Date.now() + config.jwt.ttlSeconds * 1000)
+  try {
+    await db().collection('revokedTokens').doc(jti).set({
+      jti,
+      revokedAt: Date.now(),
+      expiresAt: expiresAtMs || Date.now() + config.jwt.ttlSeconds * 1000,
+    })
+  } catch {
+    // Best effort: the in-process set still blocks this instance.
+  }
+}
+
+export async function isTokenRevoked(jti) {
+  if (!jti) return false
+
+  const hit = revoked.get(jti)
+  if (hit) {
+    if (hit < Date.now()) { revoked.delete(jti); return false }
+    return true
+  }
+
+  try {
+    const doc = await db().collection('revokedTokens').doc(jti).get()
+    if (!doc.exists) return false
+    const { expiresAt } = doc.data() || {}
+    if (expiresAt && expiresAt < Date.now()) return false
+    revoked.set(jti, expiresAt || Date.now() + 3600_000)
+    return true
+  } catch {
+    // Fail OPEN on infrastructure error. Failing closed would sign everyone
+    // out whenever Firestore hiccups, which is a worse outcome than a
+    // revoked token surviving a few extra minutes.
+    return false
+  }
 }
 
 function bearer(req) {
@@ -43,6 +104,10 @@ export async function requireAuth(req, res, next) {
   }
 
   if (!uid) return res.status(401).json({ error: 'Invalid or expired token' })
+
+  if (req.tokenClaims?.jti && await isTokenRevoked(req.tokenClaims.jti)) {
+    return res.status(401).json({ error: 'Session ended', code: 'TOKEN_REVOKED' })
+  }
 
   const snap = await db().collection('users').doc(uid).get()
   if (!snap.exists) return res.status(404).json({ error: 'Account not found', uid })
