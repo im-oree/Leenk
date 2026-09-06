@@ -164,4 +164,110 @@ router.get('/moderation/queue', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+/* --------------------------- ADMIN CONSOLE --------------------------- */
+
+/**
+ * Cheap liveness + headline counts. The console calls this on load to
+ * validate the admin key, so it must stay fast and must not throw.
+ */
+router.get('/health', async (_req, res, next) => {
+  try {
+    const count = (c, f) => {
+      const q = f ? db().collection(c).where(...f) : db().collection(c)
+      return q.get().then((s) => s.size).catch(() => 0)
+    }
+    const [users, pendingVerification, openReports, matches] = await Promise.all([
+      count('users'),
+      count('users', ['verificationStatus', '==', 'in_review']),
+      count('reports', ['status', '==', 'open']),
+      count('matches'),
+    ])
+    res.json({
+      success: true,
+      stats: { users, pendingVerification, openReports, matches },
+      store: process.env.FIREBASE_PROJECT_ID ? 'firestore' : 'in-memory',
+      studentHub: process.env.STUDENTHUB_ENABLED === 'true' ? 'enabled' : 'disabled',
+      payments: getConfig('payments')?.enabled ? 'live' : 'disabled',
+    })
+  } catch (err) { next(err) }
+})
+
+/** Never leak more than the console needs to render a row. */
+function toAdminRow(u) {
+  return {
+    uid: u.uid,
+    name: u.name || null,
+    campusId: u.campusId || null,
+    verificationStatus: u.verificationStatus || 'pending',
+    status: u.status || 'active',
+    trustScore: u.trustScore ?? null,
+    createdAtMs: u.createdAtMs || null,
+  }
+}
+
+router.get('/users', async (req, res, next) => {
+  try {
+    const q = String(req.query.q || '').trim().toLowerCase()
+    const snap = await db().collection('users').limit(500).get()
+    let rows = snap.docs.map((d) => d.data())
+    if (q) {
+      rows = rows.filter((u) =>
+        [u.name, u.phone, u.matricNumber, u.uid, u.email]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)))
+    }
+    res.json({ success: true, users: rows.slice(0, 100).map(toAdminRow), total: rows.length })
+  } catch (err) { next(err) }
+})
+
+const actionSchema = z.object({
+  action: z.enum(['suspend', 'ban', 'unban', 'reinstate']),
+  reason: z.string().max(500).optional(),
+})
+
+router.post('/users/:uid/action', async (req, res, next) => {
+  try {
+    const parsed = actionSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid action', code: 'BAD_ACTION' })
+    const { action, reason } = parsed.data
+
+    const ref = db().collection('users').doc(req.params.uid)
+    const snap = await ref.get()
+    if (!snap.exists) return res.status(404).json({ error: 'User not found' })
+
+    const status = action === 'ban' ? 'banned'
+      : action === 'suspend' ? 'suspended'
+      : 'active'
+    await ref.set({ ...snap.data(), status })
+
+    // Audit BEFORE responding: an action that isn't recorded didn't happen.
+    await db().collection('adminAudit').add({
+      action: `user.${action}`,
+      target: req.params.uid,
+      note: reason || null,
+      at: Date.now(),
+    })
+
+    res.json({ success: true, uid: req.params.uid, status })
+  } catch (err) { next(err) }
+})
+
+router.get('/reports', async (_req, res, next) => {
+  try {
+    const snap = await db().collection('reports').limit(200).get()
+    const reports = snap.docs.map((d) => d.data())
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+    res.json({ success: true, reports })
+  } catch (err) { next(err) }
+})
+
+router.get('/audit', async (_req, res, next) => {
+  try {
+    const snap = await db().collection('adminAudit').limit(300).get()
+    const entries = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+    res.json({ success: true, entries })
+  } catch (err) { next(err) }
+})
+
 export default router

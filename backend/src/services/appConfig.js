@@ -144,6 +144,27 @@ export const DEFAULTS = {
     studentHubSync: false,
   },
 
+  auth: {
+    // Social sign-in providers. Public client ids only -- secrets stay in the
+    // backend environment and are never returned by the admin API.
+    google:     { enabled: false, clientId: '' },
+    studenthub: { enabled: false, clientId: '' },
+    apple:      { enabled: false, clientId: '' },
+    snapchat:   { enabled: false, clientId: '' },
+    tiktok:     { enabled: false, clientId: '' },
+  },
+
+  idCheck: {
+    minBytes: 8192,
+    maxBytes: 8388608,
+    minWidth: 320,
+    minHeight: 320,
+    scoreTolerance: 0.35,
+    // Auto-verify needs a clean run AND a high server-derived score. The
+    // client's own score can never trigger it.
+    autoApproveFloor: 0.82,
+  },
+
   federation: {
     // StudentHub posts inline in the Leenk feed. Read-only, one direction.
     enabled: true,

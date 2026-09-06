@@ -1,0 +1,5 @@
+# Vercel hosts the frontend SPA only. The Express API in backend/ is deployed
+# separately -- leaving it here makes Vercel's builder look for a server
+# entrypoint and fail with "No entrypoint found".
+backend/
+scripts/
