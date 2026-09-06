@@ -328,4 +328,65 @@ router.get('/auth-events', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+/* ------------------------------- POST /login ------------------------------ *
+ * Sign an EXISTING account back in. Distinct from /signup, which creates one.
+ *
+ * Deliberately does not reveal whether a number is registered: both the
+ * unknown-number and wrong-code paths return the same generic failure, so this
+ * endpoint cannot be used to enumerate who is on Leenk. On a dating app that
+ * leak is a real safety problem -- it tells someone their ex is here.
+ */
+const loginSchema = z.object({
+  phone: z.string().min(7).max(20),
+  code: z.string().min(4).max(8).optional(),
+})
+
+router.post('/login', async (req, res, next) => {
+  try {
+    const parsed = loginSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid request' })
+    const { phone, code } = parsed.data
+
+    const snap = await db().collection('users').where('phone', '==', phone).limit(1).get()
+
+    // Step 1: no code yet -> "we sent one". Always the same reply, registered
+    // or not, so the response cannot be used to probe for accounts.
+    if (!code) {
+      return res.json({ success: true, codeSent: true, next: 'verify-code' })
+    }
+
+    // Step 2: verify. Same generic error for unknown number and bad code.
+    const GENERIC = { error: 'That code did not match', code: 'BAD_CODE' }
+    if (snap.empty) return res.status(401).json(GENERIC)
+    if (!config.auth.devBypassCode || code !== config.auth.devBypassCode) {
+      // Real OTP verification goes here; until a provider is wired the dev
+      // bypass code is the only accepted value.
+      if (code !== config.auth.devBypassCode) return res.status(401).json(GENERIC)
+    }
+
+    const user = snap.docs[0].data()
+    if (user.status === 'banned') {
+      return res.status(403).json({ error: 'This account is not available', code: 'BANNED' })
+    }
+
+    await db().collection('users').doc(user.uid).collection('authEvents').add({
+      action: 'login',
+      at: Date.now(),
+      userAgent: String(req.get('user-agent') || '').slice(0, 200),
+    }).catch(() => {})
+
+    const token = signLeenkToken({ uid: user.uid })
+    res.json({
+      success: true,
+      token,
+      user: {
+        uid: user.uid,
+        name: user.name,
+        verificationStatus: user.verificationStatus || 'pending',
+        onboardingComplete: user.onboardingComplete !== false,
+      },
+    })
+  } catch (err) { next(err) }
+})
+
 export default router

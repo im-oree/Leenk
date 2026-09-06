@@ -46,6 +46,8 @@ export const api = {
   studentHubCallback: (payload) => request('/auth/studenthub/callback', { method: 'POST', body: payload, auth: false }),
   linkStudentHub: (payload) => request('/auth/link-studenthub', { method: 'POST', body: payload }),
   me: () => request('/auth/me'),
+  login: (body) => request('/auth/login', { method: 'POST', body }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
 
   /* profile */
   getProfile: () => request('/profile'),

@@ -15,6 +15,7 @@
  */
 
 import api, { USE_API, setToken, getToken } from './api'
+import { swr, KEYS, TTL, mergeMessages, getCachedMessages } from './cache'
 import {
   ME, CANDIDATES, MATCHES, POSTS, NOTIFICATIONS, THREADS, STORIES,
   CAMPUSES, campusById, MOCK_GIFS, MOCK_SOUNDS, MOCK_MAP,
@@ -65,6 +66,20 @@ const toCard = (u) => ({
  * ------------------------------------------------------------------ */
 
 export const auth = {
+  /** Sign an existing account back in. Two steps: request a code, then verify. */
+  async login(phone, code) {
+    if (!USE_API) {
+      if (!code) return mock({ success: true, codeSent: true, next: 'verify-code' }, 420)
+      if (code !== '000000') {
+        const e = new Error('That code did not match'); e.code = 'BAD_CODE'; throw e
+      }
+      return mock({ success: true, token: 'mock', user: { ...ME, onboardingComplete: true } }, 380)
+    }
+    const res = await api.login({ phone, ...(code ? { code } : {}) })
+    if (res.token) setToken(res.token)
+    return res
+  },
+
   isLive: () => USE_API,
   token: getToken,
 
@@ -150,8 +165,12 @@ export const discovery = {
  * ------------------------------------------------------------------ */
 
 export const feed = {
-  async list(mode = 'foryou') {
+  async list(mode = 'foryou', { onData } = {}) {
     if (!USE_API) return mock({ success: true, posts: POSTS, mode })
+    // Cached: the feed is the first thing on open, and a stale post is
+    // harmless. swr paints instantly, then refreshes.
+    return swr(KEYS.feed(mode), () => api.feed(mode), { maxAgeMs: TTL.feed, onData })
+      .then((r) => r.data)
     return api.feed(mode)
   },
 
@@ -264,9 +283,30 @@ export const chat = {
     return api.matches()
   },
 
-  async messages(matchId) {
+  /**
+   * Messages, cached per thread.
+   *
+   * Returns whatever is cached immediately via `onData`, then fetches and
+   * merges. Refetching an entire thread on every open is the main reason chat
+   * feels slow on a campus network.
+   */
+  async messages(matchId, { onData } = {}) {
     if (!USE_API) return mock({ success: true, messages: THREADS[matchId] || [] })
-    return api.messages(matchId)
+
+    const cached = await getCachedMessages(matchId)
+    if (cached.length) onData?.({ success: true, messages: cached, stale: true })
+
+    try {
+      const res = await api.messages(matchId)
+      const merged = await mergeMessages(matchId, res.messages || [])
+      const fresh = { ...res, messages: merged, stale: false }
+      onData?.(fresh)
+      return fresh
+    } catch (err) {
+      // Offline: the cached thread is still readable and worth showing.
+      if (cached.length) return { success: true, messages: cached, stale: true }
+      throw err
+    }
   },
 
   async send(matchId, body) {

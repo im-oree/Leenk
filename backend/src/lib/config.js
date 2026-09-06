@@ -30,6 +30,13 @@ export const config = {
     timeoutMs: num(process.env.STUDENTHUB_TIMEOUT_MS, 8000),
   },
 
+  auth: {
+    // Dev-only OTP bypass. When no SMS provider is configured this is the
+    // only accepted code. MUST be unset in production -- the login route
+    // rejects every code if it is empty, which fails closed.
+    devBypassCode: process.env.DEV_OTP_CODE || (process.env.NODE_ENV === 'production' ? '' : '000000'),
+  },
+
   jwt: {
     secret: process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me',
     ttlSeconds: num(process.env.JWT_TTL_SECONDS, 60 * 60 * 24 * 30),

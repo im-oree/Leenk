@@ -96,7 +96,7 @@ export default function Welcome() {
           <Button full size="lg" onClick={() => navigate('/onboarding/phone')}>
             Get started
           </Button>
-          <Button full size="lg" variant="ghost" onClick={() => navigate('/onboarding/phone')}>
+          <Button full size="lg" variant="ghost" onClick={() => navigate('/login')}>
             I already have an account
           </Button>
           <p className="text-[11.5px] muted text-center leading-relaxed pt-1">

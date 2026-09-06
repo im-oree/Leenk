@@ -34,6 +34,8 @@ const paths = {
   forward: <><P d="M9 5.5 16 12l-7 6.5" /></>,
   close: <><P d="M6.5 6.5 17.5 17.5" /><P d="M17.5 6.5 6.5 17.5" /></>,
   check: <P d="m5.5 12.5 4 4 9-9" />,
+  alert: <><P d="M12 8v5" /><circle cx="12" cy="16.6" r="0.9" fill="currentColor" stroke="none" /><P d="M10.3 4.2 3.3 17a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3l-7-12.8a2 2 0 0 0-3.4 0z" /></>,
+  copy: <><rect x="9" y="9" width="11" height="11" rx="2.4" /><P d="M15 5.8A2.2 2.2 0 0 0 12.8 3.6H6.2A2.6 2.6 0 0 0 3.6 6.2v6.6A2.2 2.2 0 0 0 5.8 15" /></>,
   chevronDown: <P d="m6.5 9.5 5.5 5.5 5.5-5.5" />,
   chevronRight: <P d="M9.5 5.5 16 12l-6.5 6.5" />,
   search: <><circle cx="11" cy="11" r="6.3" /><P d="m15.6 15.6 4 4" /></>,

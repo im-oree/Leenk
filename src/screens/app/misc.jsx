@@ -222,6 +222,23 @@ export function PostDetail() {
   const [added, setAdded] = useState([])
   const comments = [...(commentData?.comments || []), ...added]
 
+  // A post can legitimately be missing: opened from a stale link, deleted by
+  // its author, or hidden by a block. Render a real state instead of throwing
+  // on post.author.
+  if (!post) {
+    return (
+      <Page nav={false} header={<Header back title="Post" />}>
+        <EmptyState
+          icon="image"
+          title="Post unavailable"
+          description="This post may have been deleted or is no longer shared with you."
+          action="Go back"
+          onAction={() => navigate(-1)}
+        />
+      </Page>
+    )
+  }
+
   return (
     <Page
       nav={false}

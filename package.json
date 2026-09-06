@@ -29,6 +29,7 @@
     "@capacitor/ios": "^8.5.1",
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.5.5",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
     "postcss": "^8.5.28",
     "react-dom": "^19.2.8",

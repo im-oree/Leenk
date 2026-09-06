@@ -19,6 +19,7 @@ import {
   PhoneStep, CodeStep, AppearanceStep, NameStep, BirthdateStep, GenderStep,
   CampusStep, StudyStep, IntentStep, PhotosStep, PromptsStep, VerifyIntroStep,
 } from './screens/onboarding/steps'
+import Login from './screens/onboarding/Login'
 import Verify from './screens/onboarding/Verify'
 import VerifyPending from './screens/onboarding/VerifyPending'
 
@@ -97,6 +98,7 @@ function Shell() {
         <Routes location={location} key={location.pathname.split('/').slice(0, 3).join('/')}>
           <Route path="/" element={<Navigate to={home} replace />} />
 
+          <Route path="/login" element={<Login />} />
           <Route path="/onboarding/*" element={<Onboarding />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify/pending" element={<VerifyPending />} />
