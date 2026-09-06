@@ -167,7 +167,7 @@ export const DEFAULTS = {
     pinTtlMs: 28800000,            // 8h
     // OpenFreeMap: no API key, no account, no usage limits.
     tileStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
-    tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/dark',
+    tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/fiord',
   },
 
   payments: {

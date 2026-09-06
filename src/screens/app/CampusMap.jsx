@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+// Static import: Vite turns this into a real <link>/injected stylesheet.
+// A dynamic import('...css') inside the effect is served as a JS module and
+// the rules never land, which leaves MapLibre's canvas unpositioned.
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import Page from '../../components/layout/Page'
@@ -65,12 +69,21 @@ export default function CampusMap() {
     if (!holder.current || !styleUrl || mapRef.current) return
     let cancelled = false
     let cleanupTimer = null
+    let ro = null
 
     ;(async () => {
       try {
         const maplibregl = (await import('maplibre-gl')).default
-        await import('maplibre-gl/dist/maplibre-gl.css')
         if (cancelled || !holder.current) return
+
+        // MapLibre measures the container synchronously at construction. Under
+        // a flex/absolute chain the box can still be 0x0 on the first frame,
+        // and a 0-height canvas renders nothing while still firing 'load' --
+        // a black screen with no spinner and no error.
+        if (!holder.current.clientHeight) {
+          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+          if (cancelled || !holder.current) return
+        }
 
         const map = new maplibregl.Map({
           container: holder.current,
@@ -92,7 +105,16 @@ export default function CampusMap() {
           mapReady.current = true
           clearTimeout(giveUp)
           setReady(true)
+          map.resize()
         })
+
+        // Keep the canvas in step with the container (rotation, keyboard,
+        // split-view on iPad). Without this the map is correct once and then
+        // stale forever.
+        if (typeof ResizeObserver !== 'undefined') {
+          ro = new ResizeObserver(() => map.resize())
+          ro.observe(holder.current)
+        }
 
         // MapLibre emits 'error' for recoverable things too (a single missing
         // tile, a font 404). Only treat it as fatal if the map never loaded.
@@ -112,6 +134,7 @@ export default function CampusMap() {
     return () => {
       cancelled = true
       clearTimeout(cleanupTimer)
+      ro?.disconnect()
       mapReady.current = false
       markers.current.forEach((m) => m.remove())
       markers.current = []
@@ -265,7 +288,11 @@ export default function CampusMap() {
       <div className="relative flex-1 min-h-0">
         <div ref={holder} className="absolute inset-0" />
 
-        {(!ready || loading) && !failed && (
+        {/* Anything that is not "map is up" or "map failed" must still show
+            something. Previously ready/failed/loading could all be false at
+            once (container never sized, style 404 that emitted no error), and
+            the screen rendered an empty black box with no way out. */}
+        {!ready && !failed && (
           <div className="absolute inset-0 grid place-items-center bg-[color:var(--app-bg)]">
             <Spinner />
           </div>

@@ -40,7 +40,7 @@ const DEFAULTS = {
   maxPublishDelayMs: 30 * 60 * 1000,
   pinTtlMs: 8 * 60 * 60 * 1000,    // pins expire after 8h with no update
   tileStyleUrl: 'https://tiles.openfreemap.org/styles/positron',
-  tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/dark',
+  tileStyleUrlDark: 'https://tiles.openfreemap.org/styles/fiord',
 }
 
 export const mapConfig = () => ({ ...DEFAULTS, ...(getConfig('map') || {}) })

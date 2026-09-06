@@ -391,7 +391,7 @@ export const campusMap = {
           || 'https://tiles.openfreemap.org/styles/positron',
         tileStyleUrlDark: import.meta.env.VITE_MAP_STYLE_URL_DARK
           || import.meta.env.VITE_MAP_STYLE_URL
-          || 'https://tiles.openfreemap.org/styles/dark',
+          || 'https://tiles.openfreemap.org/styles/fiord',
         settings: { visibility: 'mutuals', ghost: false, hiddenFrom: [] },
       })
     }
