@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="lk-a" x1="10" y1="10" x2="118" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff8fab"/><stop offset="0.55" stop-color="#fb3f6d"/><stop offset="1" stop-color="#c31048"/>
+    </linearGradient>
+    <linearGradient id="lk-b" x1="118" y1="10" x2="10" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb3c6"/><stop offset="0.5" stop-color="#ff5c85"/><stop offset="1" stop-color="#e81f57"/>
+    </linearGradient>
+    <mask id="lk-cut">
+      <rect width="128" height="128" fill="#fff"/>
+      <circle cx="64" cy="49" r="12" fill="#000"/>
+    </mask>
+  </defs>
+  <g transform="rotate(-38 64 64)">
+    <path d="M46 84C29 72 20 61 20 50a16 16 0 0 1 26-12 16 16 0 0 1 26 12c0 11-9 22-26 34Z"
+      transform="translate(18 -6)" stroke="url(#lk-a)" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g transform="rotate(142 64 64)" mask="url(#lk-cut)">
+    <path d="M46 84C29 72 20 61 20 50a16 16 0 0 1 26-12 16 16 0 0 1 26 12c0 11-9 22-26 34Z"
+      transform="translate(18 -6)" stroke="url(#lk-b)" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>

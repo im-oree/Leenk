@@ -1,0 +1,44 @@
+{
+  "name": "leenk",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "cap:sync": "npm run build && cap sync",
+    "verify": "node scripts/verify-layout.mjs && node scripts/verify-wiring.mjs && node scripts/verify-modules.mjs && node scripts/verify-render.mjs && npm run verify:mount && npm run verify:images && npm run verify:routes && node scripts/verify-logic.mjs",
+    "verify:mount": "vite-node --config vite.verify.config.js scripts/client-mount.mjs",
+    "verify:images": "vite-node --config vite.verify.config.js scripts/verify-images.mjs",
+    "verify:routes": "vite-node --config vite.verify.config.js scripts/verify-routes.mjs"
+  },
+  "dependencies": {
+    "@capacitor/camera": "^8.2.4",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@phosphor-icons/react": "^2.1.10",
+    "framer-motion": "^13.2.0",
+    "maplibre-gl": "^5.24.0",
+    "react": "^19.2.8",
+    "react-router-dom": "^7.18.3"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.5.5",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
+    "postcss": "^8.5.28",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^3.4.19",
+    "vite": "^8.2.2",
+    "vite-node": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20 <23"
+  }
+}

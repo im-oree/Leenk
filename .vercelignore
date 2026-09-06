@@ -1,0 +1,7 @@
+# Vercel builds the student app from the repo root. The Express API deploys
+# to Render (see render.yaml) and the admin console is its own Vercel project
+# with root directory `admin`. Excluding them here stops Vercel's builder
+# detecting a server entrypoint and failing with "No entrypoint found".
+backend/
+admin/
+scripts/
