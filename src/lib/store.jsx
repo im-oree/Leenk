@@ -167,14 +167,39 @@ function reducer(state, action) {
     // Replace seeded fixtures with real server data. Only the keys present in
     // the payload are touched, so a partially-failed hydration leaves the rest
     // of the store intact rather than blanking the UI.
-    case 'hydrate':
-      return { ...state, ...action.data, hydrated: true }
+    case 'hydrate': {
+      const next = { ...state, ...action.data, hydrated: true }
+      // `me` is dereferenced all over the app (me.photos[0], me.name, ...).
+      // A server profile with no photos yet -- a brand-new account, or a
+      // partial payload -- would crash every one of those call sites. Normalise
+      // once here rather than sprinkling ?. across thirty components.
+      next.me = normalizeMe(next.me)
+      return next
+    }
 
     case 'toast/hide':
       return { ...state, toast: null }
 
     default:
       return state
+  }
+}
+
+/**
+ * Guarantee the shape every screen assumes of `me`.
+ *
+ * Cheap insurance: the alternative is optional chaining at each of the ~30
+ * places that read it, which is easy to forget and fails at render time.
+ */
+function normalizeMe(me) {
+  if (!me) return ME
+  return {
+    ...ME,                       // fill any gaps the server did not send
+    ...me,
+    photos: Array.isArray(me.photos) && me.photos.length ? me.photos : [],
+    prompts: Array.isArray(me.prompts) ? me.prompts : [],
+    interests: Array.isArray(me.interests) ? me.interests : [],
+    name: me.name || ME.name,
   }
 }
 

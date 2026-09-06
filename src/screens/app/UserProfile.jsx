@@ -28,7 +28,16 @@ export default function UserProfile() {
   // Goes through the data layer, so this screen works against either the
   // fixtures or the live API without a code change.
   const { data, loading } = useAsync(() => profileApi.get(userId), [userId])
-  const user = data?.user || data?.profile || null
+  // The API and the mock card shape do not carry every optional field, so
+  // normalise once here. Without this, prompts.map() and photos.length throw
+  // on any profile that happens to omit them.
+  const raw = data?.user || data?.profile || null
+  const user = raw && {
+    ...raw,
+    photos: Array.isArray(raw.photos) && raw.photos.length ? raw.photos : [],
+    prompts: Array.isArray(raw.prompts) ? raw.prompts : [],
+    interests: Array.isArray(raw.interests) ? raw.interests : [],
+  }
   const [photoIdx, setPhotoIdx] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [following, setFollowing] = useState(false)
@@ -70,7 +79,13 @@ export default function UserProfile() {
 
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-32">
         <div className="relative aspect-[3/4] bg-[color:var(--app-elev)] overflow-hidden">
-          <img src={user.photos[photoIdx]} alt={user.name} className="w-full h-full object-cover" draggable={false} />
+          {user.photos.length ? (
+            <img src={user.photos[photoIdx]} alt={user.name} className="w-full h-full object-cover" draggable={false} />
+          ) : (
+            <div className="w-full h-full elev grid place-items-center">
+              <span className="text-[44px] font-semibold muted">{(user.name || '?')[0]}</span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/35 pointer-events-none" />
 
           {/* swipeable photo layer — no arrows, dots sit lower down */}

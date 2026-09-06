@@ -12,6 +12,7 @@ import Input from '../../components/ui/Input'
 import Textarea from '../../components/ui/Textarea'
 import ProgressBar from '../../components/ui/ProgressBar'
 import EmptyState from '../../components/ui/EmptyState'
+import Spinner from '../../components/ui/Spinner'
 import Section from '../../components/ui/Section'
 import ListRow from '../../components/ui/ListRow'
 import SegmentedControl from '../../components/ui/SegmentedControl'
@@ -816,44 +817,105 @@ export function CampusPage() {
 export function StoryViewer() {
   const navigate = useNavigate()
   const { storyId } = useParams()
+  const { data: storyData, loading } = useAsync(() => stories.rail(), [])
+
+  // Resolve the requested story rather than always taking the first one.
+  // The route param is an author uid (that is what StoryRail links to).
+  const rail = storyData?.rail || []
+  const story = rail.find((r) => r.authorUid === storyId) || rail[0] || null
+  const items = story?.items || []
+
+  const [index, setIndex] = useState(0)
   const [progress, setProgress] = useState(0)
-  const { data: storyData } = useAsync(() => stories.rail(), [])
-  const story = (storyData?.rail || [])[0] || null
 
+  const item = items[index] || null
+
+  // Advance through the story's items, then leave. Guarded on `item` so the
+  // timer never runs against an empty story.
   useEffect(() => {
-    const t = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) return 100
-        return p + 1.4
-      })
-    }, 60)
+    if (!item) return
+    setProgress(0)
+    const t = setInterval(() => setProgress((p) => Math.min(p + 1.4, 100)), 60)
     return () => clearInterval(t)
-  }, [])
+  }, [item])
 
   useEffect(() => {
-    if (progress >= 100) navigate(-1)
-  }, [progress, navigate])
+    if (progress < 100 || !item) return
+    if (index < items.length - 1) setIndex((i) => i + 1)
+    else navigate(-1)
+  }, [progress, index, items.length, item, navigate])
+
+  const prev = () => (index > 0 ? setIndex((i) => i - 1) : setProgress(0))
+  const next = () => (index < items.length - 1 ? setIndex((i) => i + 1) : navigate(-1))
+
+  if (loading) {
+    return (
+      <Page nav={false} padBottom={false} scroll={false} className="bg-black">
+        <div className="flex-1 grid place-items-center"><Spinner className="text-white" /></div>
+      </Page>
+    )
+  }
+
+  // Stories expire after 24h, so a link can easily outlive its content.
+  if (!story || !item) {
+    return (
+      <Page nav={false} padBottom={false} header={<Header back title="Story" />}>
+        <EmptyState
+          icon="image"
+          title="Story unavailable"
+          description="This story has expired or is no longer shared with you."
+          action="Go back"
+          onAction={() => navigate(-1)}
+        />
+      </Page>
+    )
+  }
 
   return (
     <Page nav={false} padBottom={false} scroll={false} className="bg-black">
       <div className="relative flex-1">
-        <img src={story.photos[1]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={item.mediaUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
+
         <div className="absolute top-0 left-0 right-0 safe-top px-4 pt-3 z-10">
-          <div className="h-[3px] rounded-full bg-white/25 overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-[width] duration-75" style={{ width: `${progress}%` }} />
+          {/* One bar per item, so progress through a multi-part story is legible. */}
+          <div className="flex gap-1">
+            {items.map((it, i) => (
+              <div key={it.id || i} className="h-[3px] flex-1 rounded-full bg-white/25 overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full"
+                  style={{
+                    width: i < index ? '100%' : i === index ? `${progress}%` : '0%',
+                    transition: i === index ? 'width 75ms linear' : undefined,
+                  }}
+                />
+              </div>
+            ))}
           </div>
+
           <div className="flex items-center gap-3 mt-3">
-            <Avatar src={story.photos[0]} name={story.name} size="sm" />
+            <Avatar src={story.avatar} name={story.name} size="sm" />
             <span className="text-white text-[14px] font-medium flex-1">{story.name}</span>
-            <button onClick={() => navigate(-1)} className="text-white p-1.5" aria-label="Close"><Icon name="close" size={22} /></button>
+            <button onClick={() => navigate(-1)} className="text-white p-1.5" aria-label="Close">
+              <Icon name="close" size={22} />
+            </button>
           </div>
         </div>
-        <button className="absolute left-0 inset-y-0 w-1/3" onClick={() => setProgress(0)} aria-label="Previous" />
-        <button className="absolute right-0 inset-y-0 w-1/3" onClick={() => navigate(-1)} aria-label="Next" />
+
+        <button className="absolute left-0 inset-y-0 w-1/3" onClick={prev} aria-label="Previous" />
+        <button className="absolute right-0 inset-y-0 w-1/3" onClick={next} aria-label="Next" />
+
+        {item.caption && (
+          <p className="absolute bottom-24 left-4 right-4 text-white text-[15px] leading-snug drop-shadow">
+            {item.caption}
+          </p>
+        )}
+
         <div className="absolute bottom-0 left-0 right-0 p-4 safe-bottom flex items-center gap-2.5">
           <div className="flex-1 rounded-full border border-white/35 px-4 py-3 text-white/70 text-[14px]">Send a message</div>
-          <button className="w-11 h-11 rounded-full grid place-items-center text-white border border-white/35" aria-label="Like"><Icon name="heart" size={19} /></button>
+          <button className="w-11 h-11 rounded-full grid place-items-center text-white border border-white/35" aria-label="Like">
+            <Icon name="heart" size={19} />
+          </button>
         </div>
       </div>
     </Page>
