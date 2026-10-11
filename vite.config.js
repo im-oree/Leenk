@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import zojaStudio from './zoja-studio-plugin.js'
 
 export default defineConfig({
-  plugins: [react()],
+  // zojaStudio first: it stamps elements before React compiles the JSX.
+  plugins: [zojaStudio(), react()],
   optimizeDeps: {
     // maplibre-gl is only reached via a dynamic import() in CampusMap, so Vite
     // would not discover it at startup -- it would re-optimize the moment a

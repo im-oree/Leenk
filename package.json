@@ -24,6 +24,7 @@
     "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.9",
     "@capacitor/android": "^8.5.1",
     "@capacitor/cli": "^8.5.1",
     "@capacitor/core": "^8.5.1",
